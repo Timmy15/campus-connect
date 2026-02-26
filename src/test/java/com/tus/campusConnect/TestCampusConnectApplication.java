@@ -1,4 +1,4 @@
-package com.tus.campusConnect.campus_connect;
+package com.tus.campusConnect;
 
 import org.springframework.boot.SpringApplication;
 

@@ -1,4 +1,4 @@
-package com.tus.campusConnect.campus_connect;
+package com.tus.campusConnect;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
