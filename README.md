@@ -24,3 +24,27 @@ This is an application that allows students to browse and register for events ho
 Use the **Logout** action in the navigation to clear your session and return to the login page.
 
 # Getting Started
+## Prerequisites
+- Java 17
+- Maven 3.9+
+- MySQL 8+
+
+## Configure Database
+1. Create a database named `campus_connect_db`.
+2. Update the credentials in [application.properties](C:/Users/osiyo/campus-connect/src/main/resources/application.properties):
+   - `spring.datasource.url`
+   - `spring.datasource.username`
+   - `spring.datasource.password`
+
+## Run the Application
+```bash
+mvn spring-boot:run
+```
+
+The app is configured to run on port `8081` (see `server.port` in `application.properties`).
+
+## API Documentation (Swagger UI)
+Once the app is running, open:
+```
+http://localhost:8081/swagger-ui/index.html
+```
