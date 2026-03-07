@@ -3,7 +3,6 @@ pipeline {
 
     tools {
         maven 'Maven_3'
-        jdk 'JDK17'
     }
 
     stages {
@@ -59,12 +58,16 @@ pipeline {
             when {
                 anyOf {
                     branch 'dev'
-                    branch 'main'
+                    branch 'master'
                 }
             }
             steps {
                 withSonarQubeEnv('sonarqube-local') {
-                    bat 'mvn sonar:sonar'
+                    bat '''
+                        mvn clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar ^
+                        -Dsonar.projectKey=campus-connect ^
+                        -Dsonar.projectName=campus-connect
+                    '''
                 }
             }
         }
