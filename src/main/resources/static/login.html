@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Campus Connect | Login</title>
+
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+	<link href="css/style.css" rel="stylesheet">
+</head>
+
+<body class="bg-light">
+	<div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh;">
+		<div class="card p-4 shadow-sm auth-card" style="max-width: 460px; width: 100%;">
+			<h3 class="fw-bold mb-2">Campus Connect</h3>
+			<p class="text-muted">Sign in or create an account to access your dashboard.</p>
+
+			<div class="btn-group w-100 auth-toggle mt-2" role="group" aria-label="Authentication toggle">
+				<button type="button" class="btn btn-outline-primary active" data-auth-toggle="login">Login</button>
+				<button type="button" class="btn btn-outline-primary" data-auth-toggle="register">Register</button>
+			</div>
+
+			<form id="loginForm" class="mt-3 auth-view" data-auth-view="login">
+				<div class="mb-3">
+					<label for="email" class="form-label">Email or Username</label>
+					<input type="text" class="form-control" id="email" name="email" required>
+				</div>
+				<div class="mb-3">
+					<label for="password" class="form-label">Password</label>
+					<input type="password" class="form-control" id="password" name="password" required>
+				</div>
+				<button type="submit" class="btn btn-primary w-100">Login</button>
+				<div id="loginStatus" class="small text-danger mt-2"></div>
+			</form>
+
+			<form id="registerForm" class="mt-3 auth-view d-none" data-auth-view="register">
+				<div class="mb-3">
+					<label for="registerUsername" class="form-label">Username</label>
+					<input type="text" class="form-control" id="registerUsername" name="username" required>
+					<div id="usernameStatus" class="small mt-1 text-muted"></div>
+				</div>
+				<div class="mb-3">
+					<label for="registerEmail" class="form-label">Email</label>
+					<input type="email" class="form-control" id="registerEmail" name="email" required>
+					<div class="small text-muted">Use @student.tus.com or @admin.tus.com.</div>
+					<div id="roleHint" class="small mt-1 text-muted"></div>
+				</div>
+				<div class="mb-3">
+					<label for="registerPassword" class="form-label">Password</label>
+					<input type="password" class="form-control" id="registerPassword" name="password" required>
+					<div class="small text-muted">Minimum 5 characters.</div>
+				</div>
+				<button type="submit" class="btn btn-primary w-100">Create Account</button>
+				<div id="registerStatus" class="small text-danger mt-2"></div>
+			</form>
+		</div>
+	</div>
+
+	<script type="module" src="js/login.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,178 @@
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Playfair+Display:wght@600&display=swap");
+
+:root {
+    --bg: #f7f2ea;
+    --bg-wash: #eef4f1;
+    --ink: #0f1d1a;
+    --muted: #4c5a55;
+    --accent: #1f8a70;
+    --accent-2: #e17a2d;
+    --glow-1: rgba(225, 122, 45, 0.14);
+    --glow-2: rgba(31, 138, 112, 0.12);
+    --panel: #ffffff;
+    --stroke: #e5dfd6;
+    --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+    --nav-start: #0b2b24;
+    --nav-end: #173d33;
+    --sidebar-bg: rgba(255, 255, 255, 0.9);
+    --sidebar-hover-bg: rgba(31, 138, 112, 0.12);
+    --sidebar-hover-ink: #0b5d4b;
+    --sidebar-active-bg: rgba(225, 122, 45, 0.2);
+    --sidebar-active-ink: #7b3a12;
+}
+
+body {
+    font-family: "Outfit", "Segoe UI", sans-serif;
+    padding-top: 56px;
+    margin: 0;
+    color: var(--ink);
+    background:
+        radial-gradient(circle at 18% 12%, var(--glow-1), transparent 40%),
+        radial-gradient(circle at 80% 20%, var(--glow-2), transparent 45%),
+        linear-gradient(135deg, var(--bg), var(--bg-wash));
+}
+
+.top-navbar {
+    background: linear-gradient(130deg, var(--nav-start), var(--nav-end));
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1030;
+    box-shadow: 0 10px 24px rgba(4, 12, 8, 0.24);
+}
+
+.top-navbar .navbar-brand {
+    font-family: "Playfair Display", "Times New Roman", serif;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
+.top-navbar .btn {
+    border-radius: 999px;
+}
+
+.container-fluid {
+    margin: 0;
+    padding: 0;
+}
+
+.row {
+    margin: 0;
+}
+
+.sidebar {
+    position: sticky;
+    top: 56px;
+    align-self: flex-start;
+    min-height: calc(100vh - 56px);
+    height: 100%;
+    padding-top: 1rem;
+    background-color: var(--sidebar-bg);
+    border-right: 1px solid var(--stroke);
+    box-shadow: var(--shadow);
+}
+
+.sidebar .nav-link {
+    color: var(--ink);
+    padding: 12px 18px;
+    border-radius: 999px;
+    margin: 4px 10px;
+    transition: 0.2s ease;
+}
+
+.sidebar .nav-link:hover {
+    background-color: var(--sidebar-hover-bg);
+    color: var(--sidebar-hover-ink);
+    transform: translateX(2px);
+}
+
+.sidebar .nav-link.active {
+    background-color: var(--sidebar-active-bg);
+    color: var(--sidebar-active-ink);
+    font-weight: 600;
+}
+
+.main-content {
+    padding: 24px;
+    min-height: calc(100vh - 56px);
+}
+
+.card {
+    border: 1px solid var(--stroke);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    background: var(--panel);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--accent), #1d6d5b);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #1d6d5b, var(--accent));
+}
+
+#top10FailureTable tbody tr,
+#cellFailuresTable tbody tr {
+    cursor: pointer;
+}
+
+[data-bs-theme="dark"] {
+    --bg: #141d32;
+    --bg-wash: #18233b;
+    --ink: #edf2f8;
+    --muted: #c7d2e3;
+    --accent: #7ab6ff;
+    --accent-2: #f7b267;
+    --glow-1: rgba(122, 182, 255, 0.22);
+    --glow-2: rgba(247, 178, 103, 0.16);
+    --panel: #1a2642;
+    --stroke: #2a3a5a;
+    --shadow: 0 20px 45px rgba(7, 12, 26, 0.4);
+    --nav-start: #121c30;
+    --nav-end: #1a2b4a;
+    --sidebar-bg: rgba(26, 38, 66, 0.92);
+    --sidebar-hover-bg: rgba(122, 182, 255, 0.2);
+    --sidebar-hover-ink: #f4f8ff;
+    --sidebar-active-bg: rgba(247, 178, 103, 0.24);
+    --sidebar-active-ink: #ffe7c9;
+}
+
+[data-bs-theme="dark"] .card {
+    background-color: var(--panel);
+    border: 1px solid var(--stroke);
+    color: var(--ink);
+    box-shadow: var(--shadow);
+}
+
+[data-bs-theme="dark"] .table {
+    --bs-table-border-color: var(--stroke);
+    --bs-table-striped-bg: rgba(255, 255, 255, 0.04);
+    color: var(--ink);
+}
+
+[data-bs-theme="dark"] .table thead th {
+    background-color: #15213a;
+    color: var(--ink);
+    border-bottom: 2px solid var(--stroke);
+    font-weight: 600;
+}
+
+[data-bs-theme="dark"] .page-link {
+    background-color: var(--panel);
+    border-color: var(--stroke);
+    color: var(--ink);
+}
+
+[data-bs-theme="dark"] .page-item.disabled .page-link {
+    background-color: #15213a;
+    border-color: var(--stroke);
+}
+
+[data-bs-theme="dark"] .text-secondary,
+[data-bs-theme="dark"] .text-muted,
+[data-bs-theme="dark"] #cellFailuresRange {
+    color: var(--muted) !important;
+}
