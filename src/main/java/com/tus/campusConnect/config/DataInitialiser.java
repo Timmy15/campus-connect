@@ -24,7 +24,7 @@ public class DataInitialiser implements CommandLineRunner {
     }
 
     private void createAdminUser() {
-        String adminEmail = "admin@clubevents.com";
+        String adminEmail = "admin@admin.tus.com";
 
         if (userRepository.findByEmail(adminEmail).isEmpty()) {
             User admin = new User();
@@ -42,7 +42,7 @@ public class DataInitialiser implements CommandLineRunner {
     }
 
     private void createStudentUser() {
-        String studentEmail = "student@clubevents.com";
+        String studentEmail = "student@student.tus.com";
 
         if (userRepository.findByEmail(studentEmail).isEmpty()) {
             User student = new User();

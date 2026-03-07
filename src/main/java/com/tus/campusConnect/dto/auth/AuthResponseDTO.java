@@ -1,4 +1,4 @@
-package com.tus.campusConnect.dto;
+package com.tus.campusConnect.dto.auth;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
