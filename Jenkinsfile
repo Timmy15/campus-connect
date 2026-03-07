@@ -50,7 +50,7 @@ pipeline {
                 }
             }
             steps {
-                bat 'mvn verify -P e2e -Dparallel=none -Dcucumber.plugin=json:target/Cucumber.json,pretty,summary'
+                bat 'mvn verify -P e2e -Dparallel=none'
             }
         }
 
@@ -58,13 +58,13 @@ pipeline {
             when {
                 anyOf {
                     branch 'dev'
-                    branch 'master'
+                    branch 'main'
                 }
             }
             steps {
                 withSonarQubeEnv('sonarqube-local') {
                     bat '''
-                        mvn clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar ^
+                        mvn verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar ^
                         -Dsonar.projectKey=campus-connect ^
                         -Dsonar.projectName=campus-connect
                     '''
@@ -104,9 +104,15 @@ pipeline {
                 tools: [[parser: 'JACOCO', pattern: '**/jacoco.xml']]
             )
 
-            cucumber buildStatus: 'UNSTABLE',
-                     fileIncludePattern: '**/Cucumber.json',
-                     jsonReportDirectory: 'target'
+            script {
+                if (fileExists('target/Cucumber.json')) {
+                    cucumber buildStatus: 'UNSTABLE',
+                             fileIncludePattern: '**/Cucumber.json',
+                             jsonReportDirectory: 'target'
+                } else {
+                    echo 'Cucumber report not found; skipping cucumber publish step.'
+                }
+            }
 
             publishHTML(target: [
                 allowMissing: true,
@@ -117,14 +123,20 @@ pipeline {
                 reportName: 'Detailed JaCoCo Report'
             ])
 
-            publishHTML(target: [
-                allowMissing: true,
-                alwaysLinkToLastBuild: true,
-                keepAll: true,
-                reportDir: 'target/karate-reports',
-                reportFiles: 'karate-summary.html',
-                reportName: 'Karate API Report'
-            ])
+            script {
+                if (fileExists('target/karate-reports/karate-summary.html')) {
+                    publishHTML(target: [
+                        allowMissing: true,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'target/karate-reports',
+                        reportFiles: 'karate-summary.html',
+                        reportName: 'Karate API Report'
+                    ])
+                } else {
+                    echo 'Karate report not found; skipping Karate HTML publish step.'
+                }
+            }
         }
 
         success {
