@@ -24,6 +24,11 @@ public class JwtService {
     @Value("${jwt.expiration}")
     private long jwtExpiration;
 
+    @Value("${jwt.rotate-on-startup:false}")
+    private boolean rotateOnStartup;
+
+    private Key signingKey;
+
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
@@ -65,7 +70,14 @@ public class JwtService {
     }
 
     private Key getSignInKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
-        return Keys.hmacShaKeyFor(keyBytes);
+        if (signingKey == null) {
+            if (rotateOnStartup) {
+                signingKey = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+            } else {
+                byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
+                signingKey = Keys.hmacShaKeyFor(keyBytes);
+            }
+        }
+        return signingKey;
     }
 }
