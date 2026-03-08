@@ -271,6 +271,8 @@ function setEventFormEnabled(enabled) {
 
     if (!enabled) {
         setEventStatus('Create a club first to add events.', false);
+    } else {
+        setEventStatus('', false);
     }
 }
 
@@ -563,6 +565,7 @@ function resetEventForm(keepSelection = false) {
     document.getElementById('eventFormTitle').textContent = 'Create Event';
     document.getElementById('eventFormSubmit').textContent = 'Create Event';
     document.getElementById('eventFormCancel').classList.add('d-none');
+    setEventStatus('', false);
 }
 
 function setClubStatus(message, isSuccess = false) {

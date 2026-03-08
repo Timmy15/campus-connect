@@ -12,7 +12,6 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
-import org.springframework.boot.test.web.server.LocalServerPort;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -25,12 +24,8 @@ public class EventSteps {
 
     private static final DateTimeFormatter DATE_TIME_INPUT = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
 
-    @LocalServerPort
-    private int port;
-
     private WebDriver driver;
     private UIHelper ui;
-    private String baseUrl;
     private String clubName;
     private String eventTitle;
     private String updatedEventTitle;
@@ -39,7 +34,6 @@ public class EventSteps {
     public void setUp() {
         driver = SharedWebDriver.getDriver();
         ui = UIHelper.getInstance(driver, Duration.ofSeconds(12));
-        baseUrl = "http://localhost:" + port;
     }
 
     @When("I create a new club for events")
