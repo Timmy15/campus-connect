@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -21,6 +22,7 @@ public class ClubService {
 
     private final ClubRepository clubRepository;
     private final UserRepository userRepository;
+    private final Clock clock;
 
     public List<Club> getActiveClubs() {
         return clubRepository.findAllByIsActiveTrueOrderByNameAsc();
@@ -50,7 +52,7 @@ public class ClubService {
         club.setDescription(toNullable(description));
         club.setCategory(toNullable(category));
         club.setActive(true);
-        club.setCreatedAt(LocalDateTime.now());
+        club.setCreatedAt(LocalDateTime.now(clock));
         club.setAdmin(admin);
 
         return clubRepository.save(club);

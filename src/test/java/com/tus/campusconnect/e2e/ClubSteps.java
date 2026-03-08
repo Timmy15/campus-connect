@@ -10,15 +10,21 @@ import io.cucumber.java.en.When;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.boot.test.web.server.LocalServerPort;
 
 import java.time.Duration;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Map;
 
 public class ClubSteps {
 
@@ -41,13 +47,10 @@ public class ClubSteps {
 
     @Given("I am logged in as an admin")
     public void iAmLoggedInAsAnAdmin() {
+        LoginResult login = loginViaApi(users.getAdminEmail(), users.getAdminPassword());
         ui.open(baseUrl + "/login.html");
-        ui.waitForVisible(By.id("loginForm"));
-        ui.type(By.id("email"), users.getAdminEmail());
-        ui.type(By.id("password"), users.getAdminPassword());
-        ui.click(By.cssSelector("#loginForm button[type='submit']"));
-        ui.waitForText(By.id("loginStatus"), "Login successful");
-        ui.waitForUrlContains("/");
+        setAuthStorage(login);
+        driver.navigate().to(baseUrl + "/");
         ui.waitForVisible(By.id("nav-manage-clubs"));
     }
 
@@ -63,7 +66,7 @@ public class ClubSteps {
         ui.type(By.id("clubName"), clubName);
         ui.type(By.id("clubCategory"), "Tech");
         ui.type(By.id("clubDescription"), "Automation test club.");
-        clickWithFallback(By.id("clubFormSubmit"));
+        ui.clickWithFallback(By.id("clubFormSubmit"));
         waitForClubAction(clubNameCellLocator(clubName), "Club created");
     }
 
@@ -76,10 +79,10 @@ public class ClubSteps {
     public void iUpdateTheClubName() {
         updatedClubName = clubName + "-Updated";
         ui.waitForVisible(clubNameCellLocator(clubName));
-        clickWithFallback(editButtonLocator(clubName));
+        ui.clickWithFallback(editButtonLocator(clubName));
         ui.waitForText(By.id("clubFormSubmit"), "Update Club");
         ui.type(By.id("clubName"), updatedClubName);
-        clickWithFallback(By.id("clubFormSubmit"));
+        ui.clickWithFallback(By.id("clubFormSubmit"));
         waitForClubAction(clubNameCellLocator(updatedClubName), "Club updated");
     }
 
@@ -110,7 +113,7 @@ public class ClubSteps {
         ui.waitForVisible(By.id("clubForm"));
         String name = updatedClubName != null ? updatedClubName : clubName;
         ui.waitForVisible(clubNameCellLocator(name));
-        clickWithFallback(deactivateButtonLocator(name));
+        ui.clickWithFallback(deactivateButtonLocator(name));
         acceptConfirm();
         waitForClubAction(inactiveBadgeLocator(name), "Club deactivated");
         ui.waitForVisible(inactiveBadgeLocator(name));
@@ -122,7 +125,7 @@ public class ClubSteps {
         ui.waitForVisible(By.id("clubForm"));
         String name = updatedClubName != null ? updatedClubName : clubName;
         ui.waitForVisible(inactiveBadgeLocator(name));
-        clickWithFallback(activateButtonLocator(name));
+        ui.clickWithFallback(activateButtonLocator(name));
         waitForClubAction(activeBadgeLocator(name), "Club activated");
         ui.waitForVisible(activeBadgeLocator(name));
     }
@@ -150,7 +153,7 @@ public class ClubSteps {
         ui.type(By.id("clubName"), clubName);
         ui.type(By.id("clubCategory"), "Tech");
         ui.type(By.id("clubDescription"), "Duplicate attempt.");
-        clickWithFallback(By.id("clubFormSubmit"));
+        ui.clickWithFallback(By.id("clubFormSubmit"));
     }
 
     @Then("I see a club already exists error")
@@ -192,23 +195,6 @@ public class ClubSteps {
         driver.switchTo().alert().accept();
     }
 
-    private void clickWithFallback(By locator) {
-        try {
-            ui.click(locator);
-            return;
-        } catch (RuntimeException ignored) {
-            // Fall back to JavaScript click when Selenium reports an intercepted click.
-        }
-
-        WebElement element = new WebDriverWait(driver, Duration.ofSeconds(5))
-                .until(ExpectedConditions.presenceOfElementLocated(locator));
-        ((JavascriptExecutor) driver).executeScript(
-                "arguments[0].scrollIntoView({block: 'center', inline: 'center'});",
-                element
-        );
-        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", element);
-    }
-
     private void waitForNotPresent(By locator) {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(8));
         boolean gone = wait.until(d -> d.findElements(locator).isEmpty());
@@ -247,5 +233,56 @@ public class ClubSteps {
 
         new WebDriverWait(driver, Duration.ofSeconds(8))
                 .until(ExpectedConditions.visibilityOfElementLocated(successLocator));
+    }
+
+    private LoginResult loginViaApi(String email, String password) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            String body = mapper.writeValueAsString(Map.of("email", email, "password", password));
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + "/api/auth/login"))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build();
+
+            HttpResponse<String> response = HttpClient.newHttpClient()
+                    .send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() != 200) {
+                throw new IllegalStateException("Login failed with status " + response.statusCode());
+            }
+
+            Map<String, Object> payload = mapper.readValue(response.body(), new TypeReference<>() {});
+            String token = payload.get("token") != null ? payload.get("token").toString() : null;
+            String role = payload.get("role") != null ? payload.get("role").toString() : null;
+
+            if (token == null || role == null) {
+                throw new IllegalStateException("Login response missing token or role.");
+            }
+
+            return new LoginResult(token, role);
+        } catch (Exception ex) {
+            throw new RuntimeException("API login failed.", ex);
+        }
+    }
+
+    private void setAuthStorage(LoginResult login) {
+        ((JavascriptExecutor) driver).executeScript(
+                "localStorage.setItem('cc.token', arguments[0]);" +
+                        "localStorage.setItem('cc.role', arguments[1]);",
+                login.token,
+                login.role
+        );
+    }
+
+    private static final class LoginResult {
+        private final String token;
+        private final String role;
+
+        private LoginResult(String token, String role) {
+            this.token = token;
+            this.role = role;
+        }
     }
 }

@@ -21,6 +21,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -71,11 +72,9 @@ class AuthControllerTest {
         when(authService.login(users.getStudentEmail(), users.getWrongPassword()))
                 .thenThrow(new UnauthorizedException("Wrong email/password combo."));
 
-        ResponseEntity<AuthResponseDTO> response = authController.login(request);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getMessage()).isEqualTo("Wrong email/password combo.");
+        assertThatThrownBy(() -> authController.login(request))
+                .isInstanceOf(UnauthorizedException.class)
+                .hasMessageContaining("Wrong email/password combo.");
     }
 
     @Test
@@ -99,12 +98,9 @@ class AuthControllerTest {
         when(authService.register("timi@gmail.com", "timi", "abcde"))
                 .thenThrow(new BadRequestException("Email must end with @student.tus.com or @admin.tus.com."));
 
-        ResponseEntity<RegisterResponseDTO> response = authController.register(request);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getMessage())
-                .isEqualTo("Email must end with @student.tus.com or @admin.tus.com.");
+        assertThatThrownBy(() -> authController.register(request))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Email must end with @student.tus.com or @admin.tus.com.");
     }
 
     @Test
@@ -114,11 +110,9 @@ class AuthControllerTest {
         when(authService.register("timi@student.tus.com", "timi", "abcd"))
                 .thenThrow(new BadRequestException("Password must be at least 5 characters."));
 
-        ResponseEntity<RegisterResponseDTO> response = authController.register(request);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getMessage()).isEqualTo("Password must be at least 5 characters.");
+        assertThatThrownBy(() -> authController.register(request))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Password must be at least 5 characters.");
     }
 
     @Test
@@ -128,11 +122,9 @@ class AuthControllerTest {
         when(authService.register("timi@student.tus.com", "timi", "abcde"))
                 .thenThrow(new ConflictException("Email already registered."));
 
-        ResponseEntity<RegisterResponseDTO> response = authController.register(request);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getMessage()).isEqualTo("Email already registered.");
+        assertThatThrownBy(() -> authController.register(request))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("Email already registered.");
     }
 
     @Test
@@ -142,11 +134,9 @@ class AuthControllerTest {
         when(authService.register("timi@student.tus.com", "timi", "abcde"))
                 .thenThrow(new ConflictException("Username already taken."));
 
-        ResponseEntity<RegisterResponseDTO> response = authController.register(request);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getMessage()).isEqualTo("Username already taken.");
+        assertThatThrownBy(() -> authController.register(request))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("Username already taken.");
     }
 
     @Test
@@ -180,11 +170,9 @@ class AuthControllerTest {
         when(authService.usernameAvailable(""))
                 .thenThrow(new BadRequestException("Username is required."));
 
-        ResponseEntity<UsernameAvailabilityDTO> response = authController.usernameAvailable("");
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getMessage()).isEqualTo("Username is required.");
+        assertThatThrownBy(() -> authController.usernameAvailable(""))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Username is required.");
     }
 
     private LoginRequestDTO loginRequest(String email, String password) {

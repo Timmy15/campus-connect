@@ -20,6 +20,9 @@ This is an application that allows students to browse and register for events ho
 - The navigation shows only the items your role can access.
 - Your username is shown on the dashboard so you can confirm the logged-in account.
 - Admins can create, update, deactivate, and reactivate clubs from **Manage Clubs**.
+- Admins can create and update events for a club from **Manage Clubs** (Event Management section).
+- Events require a future start date and a capacity greater than zero.
+- Students can view active events in **Browse Events**.
 - Deactivated clubs are hidden from the **Browse Clubs** list until reactivated.
 
 ## Log Out
@@ -53,3 +56,8 @@ http://localhost:8081/swagger-ui/index.html
 
 The Swagger UI includes the club activation endpoint:
 `PUT /api/admin/clubs/{id}/activate`
+
+It also documents event management endpoints, for example:
+- `POST /api/admin/clubs/{clubId}/events`
+- `PUT /api/admin/events/{eventId}`
+- `GET /api/events`

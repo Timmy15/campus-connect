@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,7 +30,7 @@ class UserControllerTest {
 
     @Test
     void getCurrentUserReturnsProfile() {
-        UserProfileDTO dto = new UserProfileDTO("admin", "System Admin", "admin@admin.tus.com", "ROLE_ADMIN");
+        UserProfileDTO dto = new UserProfileDTO("admin", "System Admin", "admin@admin.tus.com", "ADMIN");
 
         when(userService.getCurrentUser(authentication)).thenReturn(dto);
 
@@ -45,9 +46,9 @@ class UserControllerTest {
         when(userService.getCurrentUser(authentication))
                 .thenThrow(new UnauthorizedException("User not found."));
 
-        ResponseEntity<UserProfileDTO> response = userController.getCurrentUser(authentication);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThatThrownBy(() -> userController.getCurrentUser(authentication))
+                .isInstanceOf(UnauthorizedException.class)
+                .hasMessageContaining("User not found.");
     }
 
     @Test
@@ -55,8 +56,8 @@ class UserControllerTest {
         when(userService.getCurrentUser(null))
                 .thenThrow(new UnauthorizedException("User not found."));
 
-        ResponseEntity<UserProfileDTO> response = userController.getCurrentUser(null);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThatThrownBy(() -> userController.getCurrentUser(null))
+                .isInstanceOf(UnauthorizedException.class)
+                .hasMessageContaining("User not found.");
     }
 }

@@ -1,15 +1,9 @@
-export function renderManageEvents() {
-    const appRoot = document.getElementById('app-root');
+import { renderManageClubs } from './manageClubs.js';
 
-    appRoot.innerHTML = `
-        <div class="container-fluid">
-            <div class="row mb-3">
-                <div class="col">
-                    <h2 class="fw-bold">Manage Events</h2>
-                    <p class="text-muted mb-0">Review and approve event submissions.</p>
-                </div>
-            </div>
-            <div class="card p-4 text-muted">Event management tools coming soon.</div>
-        </div>
-    `;
+export function renderManageEvents() {
+    renderManageClubs();
+    const section = document.getElementById('eventManagementSection');
+    if (section) {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 }

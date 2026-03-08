@@ -5,9 +5,6 @@ import com.tus.campusconnect.dto.auth.LoginRequestDTO;
 import com.tus.campusconnect.dto.auth.RegisterRequestDTO;
 import com.tus.campusconnect.dto.auth.RegisterResponseDTO;
 import com.tus.campusconnect.dto.auth.UsernameAvailabilityDTO;
-import com.tus.campusconnect.exception.BadRequestException;
-import com.tus.campusconnect.exception.ConflictException;
-import com.tus.campusconnect.exception.UnauthorizedException;
 import com.tus.campusconnect.service.AuthService;
 import com.tus.campusconnect.service.AuthResult;
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,13 +28,8 @@ public class AuthController {
     @ApiResponse(responseCode = "200", description = "Login successful.")
     @ApiResponse(responseCode = "401", description = "Invalid credentials.")
     public ResponseEntity<AuthResponseDTO> login(@RequestBody LoginRequestDTO request) {
-        try {
-            AuthResult result = authService.login(request.getEmail(), request.getPassword());
-            return ResponseEntity.ok(new AuthResponseDTO(result.token(), result.role(), "Login successful"));
-        } catch (UnauthorizedException ex) {
-            return ResponseEntity.status(ex.getStatus())
-                    .body(new AuthResponseDTO(null, null, ex.getMessage()));
-        }
+        AuthResult result = authService.login(request.getEmail(), request.getPassword());
+        return ResponseEntity.ok(new AuthResponseDTO(result.token(), result.role(), "Login successful"));
     }
 
     @PostMapping("/register")
@@ -46,18 +38,13 @@ public class AuthController {
     @ApiResponse(responseCode = "400", description = "Invalid registration details.")
     @ApiResponse(responseCode = "409", description = "Email or username already taken.")
     public ResponseEntity<RegisterResponseDTO> register(@RequestBody RegisterRequestDTO request) {
-        try {
-            var role = authService.register(
-                    request.getEmail(),
-                    request.getUsername(),
-                    request.getPassword()
-            );
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(new RegisterResponseDTO("Registration successful. Please log in.", role.name()));
-        } catch (BadRequestException | ConflictException ex) {
-            return ResponseEntity.status(ex.getStatus())
-                    .body(new RegisterResponseDTO(ex.getMessage(), null));
-        }
+        var role = authService.register(
+                request.getEmail(),
+                request.getUsername(),
+                request.getPassword()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new RegisterResponseDTO("Registration successful. Please log in.", role.name()));
     }
 
     @GetMapping("/username-available")
@@ -65,13 +52,8 @@ public class AuthController {
     @ApiResponse(responseCode = "200", description = "Availability returned.")
     @ApiResponse(responseCode = "400", description = "Username is required.")
     public ResponseEntity<UsernameAvailabilityDTO> usernameAvailable(@RequestParam(required = false) String username) {
-        try {
-            boolean available = authService.usernameAvailable(username);
-            String message = available ? "Username is available." : "Username already taken.";
-            return ResponseEntity.ok(new UsernameAvailabilityDTO(available, message));
-        } catch (BadRequestException ex) {
-            return ResponseEntity.status(ex.getStatus())
-                    .body(new UsernameAvailabilityDTO(false, ex.getMessage()));
-        }
+        boolean available = authService.usernameAvailable(username);
+        String message = available ? "Username is available." : "Username already taken.";
+        return ResponseEntity.ok(new UsernameAvailabilityDTO(available, message));
     }
 }

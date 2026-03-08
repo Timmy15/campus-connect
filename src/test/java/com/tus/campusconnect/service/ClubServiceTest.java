@@ -12,6 +12,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,7 +23,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-
 @ExtendWith(MockitoExtension.class)
 class ClubServiceTest {
 
@@ -29,8 +32,13 @@ class ClubServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private Clock clock;
+
     @InjectMocks
     private ClubService clubService;
+
+    private static final ZoneId ZONE = ZoneId.systemDefault();
 
     @Test
     void getActiveClubsUsesRepository() {
@@ -62,6 +70,7 @@ class ClubServiceTest {
         admin.setId(1L);
         admin.setEmail("admin@admin.tus.com");
 
+        stubClock();
         when(userRepository.findByEmailIgnoreCaseOrUsernameIgnoreCase("admin@admin.tus.com", "admin@admin.tus.com"))
                 .thenReturn(Optional.of(admin));
         when(clubRepository.existsByNameIgnoreCase("Robotics")).thenReturn(false);
@@ -77,6 +86,60 @@ class ClubServiceTest {
         assertThat(created.getName()).isEqualTo("Robotics");
         assertThat(created.getAdmin()).isEqualTo(admin);
         assertThat(created.isActive()).isTrue();
+    }
+
+    @Test
+    void createClubRejectsMissingAdmin() {
+        when(userRepository.findByEmailIgnoreCaseOrUsernameIgnoreCase("admin@admin.tus.com", "admin@admin.tus.com"))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> clubService.createClub(
+                new UsernamePasswordAuthenticationToken("admin@admin.tus.com", "pw"),
+                "Robotics",
+                "Build robots",
+                "Tech"
+        ))
+                .isInstanceOf(com.tus.campusconnect.exception.UnauthorizedException.class)
+                .hasMessageContaining("User not found");
+    }
+
+    @Test
+    void createClubRejectsMissingName() {
+        User admin = new User();
+        admin.setId(1L);
+        admin.setEmail("admin@admin.tus.com");
+
+        when(userRepository.findByEmailIgnoreCaseOrUsernameIgnoreCase("admin@admin.tus.com", "admin@admin.tus.com"))
+                .thenReturn(Optional.of(admin));
+
+        assertThatThrownBy(() -> clubService.createClub(
+                new UsernamePasswordAuthenticationToken("admin@admin.tus.com", "pw"),
+                "   ",
+                "Build robots",
+                "Tech"
+        ))
+                .isInstanceOf(com.tus.campusconnect.exception.BadRequestException.class)
+                .hasMessageContaining("Club name is required");
+    }
+
+    @Test
+    void createClubRejectsDuplicateName() {
+        User admin = new User();
+        admin.setId(1L);
+        admin.setEmail("admin@admin.tus.com");
+
+        when(userRepository.findByEmailIgnoreCaseOrUsernameIgnoreCase("admin@admin.tus.com", "admin@admin.tus.com"))
+                .thenReturn(Optional.of(admin));
+        when(clubRepository.existsByNameIgnoreCase("Robotics")).thenReturn(true);
+
+        assertThatThrownBy(() -> clubService.createClub(
+                new UsernamePasswordAuthenticationToken("admin@admin.tus.com", "pw"),
+                "Robotics",
+                "Build robots",
+                "Tech"
+        ))
+                .isInstanceOf(com.tus.campusconnect.exception.ConflictException.class)
+                .hasMessageContaining("Club already exists");
     }
 
     @Test
@@ -116,5 +179,47 @@ class ClubServiceTest {
         assertThatThrownBy(() -> clubService.activateClub(99L))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Club not found");
+    }
+
+    @Test
+    void updateClubRejectsInvalidName() {
+        Club club = new Club();
+        club.setId(5L);
+        club.setName("Robotics");
+
+        when(clubRepository.findById(5L)).thenReturn(Optional.of(club));
+
+        assertThatThrownBy(() -> clubService.updateClub(5L, "   ", null, null))
+                .isInstanceOf(com.tus.campusconnect.exception.BadRequestException.class)
+                .hasMessageContaining("Invalid club details");
+    }
+
+    @Test
+    void updateClubRejectsDuplicateName() {
+        Club club = new Club();
+        club.setId(6L);
+        club.setName("Robotics");
+
+        when(clubRepository.findById(6L)).thenReturn(Optional.of(club));
+        when(clubRepository.existsByNameIgnoreCase("Chess")).thenReturn(true);
+
+        assertThatThrownBy(() -> clubService.updateClub(6L, "Chess", null, null))
+                .isInstanceOf(com.tus.campusconnect.exception.ConflictException.class)
+                .hasMessageContaining("Club already exists");
+    }
+
+    @Test
+    void updateClubThrowsWhenMissing() {
+        when(clubRepository.findById(100L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> clubService.updateClub(100L, "Chess", null, null))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Club not found");
+    }
+
+    private void stubClock() {
+        Instant instant = LocalDateTime.of(2026, 3, 8, 12, 0).atZone(ZONE).toInstant();
+        when(clock.instant()).thenReturn(instant);
+        when(clock.getZone()).thenReturn(ZONE);
     }
 }
