@@ -56,6 +56,26 @@ class ClubServiceTest {
     }
 
     @Test
+    void getActiveClubsPreservesRepositoryOrdering() {
+        Club alpha = new Club();
+        alpha.setId(1L);
+        alpha.setName("Alpha Club");
+        alpha.setActive(true);
+
+        Club beta = new Club();
+        beta.setId(2L);
+        beta.setName("Beta Club");
+        beta.setActive(true);
+
+        when(clubRepository.findAllByIsActiveTrueOrderByNameAsc())
+                .thenReturn(List.of(alpha, beta));
+
+        List<Club> result = clubService.getActiveClubs();
+
+        assertThat(result).containsExactly(alpha, beta);
+    }
+
+    @Test
     void getAllClubsUsesRepository() {
         when(clubRepository.findAllByOrderByNameAsc()).thenReturn(List.of());
 

@@ -23,6 +23,7 @@ This is an application that allows students to browse and register for events ho
 - Admins can create and update events for a club from **Manage Clubs** (Event Management section).
 - Events require a future start date and a capacity greater than zero.
 - Students can view active events in **Browse Events**.
+- Students can search clubs/events by name, filter by category, and sort events by date in the browse pages.
 - Deactivated clubs are hidden from the **Browse Clubs** list until reactivated.
 
 ## Log Out
