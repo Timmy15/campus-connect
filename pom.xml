@@ -164,6 +164,7 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
+					<excludeEngines>cucumber</excludeEngines>
 					<includes>
 						<include>**/*Test.java</include>
 					</includes>
