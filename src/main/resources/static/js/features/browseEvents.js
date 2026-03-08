@@ -1,4 +1,4 @@
-import { apiRequest } from '../utils/api.js';
+import { apiRequest, safeJson } from '../utils/api.js';
 import { escapeHtml } from '../utils/dom.js';
 
 export function renderBrowseEvents() {
@@ -18,6 +18,7 @@ export function renderBrowseEvents() {
                     <h5 class="fw-semibold mb-0">Upcoming Events</h5>
                     <span class="text-muted small" id="eventBrowseCount">Loading...</span>
                 </div>
+                <div class="small mb-2" id="eventBrowseStatus"></div>
                 <div class="row g-2 align-items-center mb-3">
                     <div class="col-md-5">
                         <div class="input-group input-group-sm">
@@ -131,9 +132,41 @@ function applyEventFilters(state) {
                     <span class="badge bg-secondary-subtle text-secondary">Capacity ${event.capacity ?? '-'}</span>
                     <span class="badge bg-primary-subtle text-primary">${escapeHtml(normalizeCategory(event.clubCategory))}</span>
                 </div>
+                <div class="mt-3 d-flex justify-content-end">
+                    <button class="btn btn-sm btn-outline-primary" data-action="register" data-id="${event.id}">
+                        Register
+                    </button>
+                </div>
             </div>
         </div>
     `).join('');
+
+    grid.querySelectorAll('button[data-action="register"]').forEach(button => {
+        button.addEventListener('click', () => handleEventRegistration(button.dataset.id));
+    });
+}
+
+async function handleEventRegistration(eventId) {
+    setEventBrowseStatus('');
+    if (!eventId) {
+        setEventBrowseStatus('Unable to register for this event.', false);
+        return;
+    }
+
+    try {
+        const response = await apiRequest(`/api/student/events/${eventId}/register`, {
+            method: 'POST'
+        });
+        const data = await safeJson(response);
+        if (!response.ok) {
+            setEventBrowseStatus(data?.message || 'Unable to register for this event.', false);
+            return;
+        }
+        setEventBrowseStatus(data?.message || 'Registration successful.', true);
+    } catch (error) {
+        console.warn('Unable to register for event.', error);
+        setEventBrowseStatus('Unable to register for this event.', false);
+    }
 }
 
 function populateEventCategories(state, selectEl) {
@@ -175,4 +208,12 @@ function toSortableDate(value) {
 function normalizeCategory(value) {
     const trimmed = (value || '').trim();
     return trimmed || 'Uncategorized';
+}
+
+function setEventBrowseStatus(message, isSuccess = false) {
+    const statusEl = document.getElementById('eventBrowseStatus');
+    if (!statusEl) return;
+    statusEl.textContent = message || '';
+    statusEl.classList.toggle('text-success', Boolean(message) && isSuccess);
+    statusEl.classList.toggle('text-danger', Boolean(message) && !isSuccess);
 }
