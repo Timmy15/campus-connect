@@ -10,6 +10,10 @@ import com.tus.campusconnect.exception.NotFoundException;
 import com.tus.campusconnect.exception.UnauthorizedException;
 import com.tus.campusconnect.model.Club;
 import com.tus.campusconnect.service.ClubService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,11 +25,16 @@ import java.util.List;
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
+@Tag(name = "Clubs", description = "Club browsing and admin management endpoints.")
 public class ClubController {
 
     private final ClubService clubService;
 
     @GetMapping("/clubs")
+    @Operation(summary = "List active clubs", description = "Return all active clubs for browsing.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Active clubs returned.")
+    })
     public List<ClubResponseDTO> getActiveClubs() {
         return clubService.getActiveClubs()
                 .stream()
@@ -34,6 +43,11 @@ public class ClubController {
     }
 
     @GetMapping("/admin/clubs")
+    @Operation(summary = "List all clubs", description = "Return all clubs for admin management.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "All clubs returned."),
+            @ApiResponse(responseCode = "403", description = "Forbidden.")
+    })
     public List<ClubResponseDTO> getAllClubs() {
         return clubService.getAllClubs()
                 .stream()
@@ -42,6 +56,13 @@ public class ClubController {
     }
 
     @PostMapping("/admin/clubs")
+    @Operation(summary = "Create a club")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Club created."),
+            @ApiResponse(responseCode = "400", description = "Invalid club details."),
+            @ApiResponse(responseCode = "401", description = "Unauthorized."),
+            @ApiResponse(responseCode = "409", description = "Club already exists.")
+    })
     public ResponseEntity<ClubActionResponseDTO> createClub(@RequestBody ClubCreateRequestDTO request,
                                                             Authentication authentication) {
         try {
@@ -59,6 +80,13 @@ public class ClubController {
     }
 
     @PutMapping("/admin/clubs/{id}")
+    @Operation(summary = "Update a club")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Club updated."),
+            @ApiResponse(responseCode = "400", description = "Invalid club details."),
+            @ApiResponse(responseCode = "404", description = "Club not found."),
+            @ApiResponse(responseCode = "409", description = "Club already exists.")
+    })
     public ResponseEntity<ClubActionResponseDTO> updateClub(@PathVariable Long id,
                                                             @RequestBody ClubUpdateRequestDTO request) {
         try {
@@ -75,6 +103,11 @@ public class ClubController {
     }
 
     @DeleteMapping("/admin/clubs/{id}")
+    @Operation(summary = "Deactivate a club")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Club deactivated."),
+            @ApiResponse(responseCode = "404", description = "Club not found.")
+    })
     public ResponseEntity<ClubActionResponseDTO> deactivateClub(@PathVariable Long id) {
         try {
             Club saved = clubService.deactivateClub(id);
@@ -85,6 +118,11 @@ public class ClubController {
     }
 
     @PutMapping("/admin/clubs/{id}/activate")
+    @Operation(summary = "Activate a club", description = "Marks a previously deactivated club as active.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Club activated successfully."),
+            @ApiResponse(responseCode = "404", description = "Club not found.")
+    })
     public ResponseEntity<ClubActionResponseDTO> activateClub(@PathVariable Long id) {
         try {
             Club saved = clubService.activateClub(id);

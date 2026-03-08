@@ -10,6 +10,10 @@ import com.tus.campusconnect.exception.ConflictException;
 import com.tus.campusconnect.exception.UnauthorizedException;
 import com.tus.campusconnect.service.AuthService;
 import com.tus.campusconnect.service.AuthResult;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,11 +22,17 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
+@Tag(name = "Auth", description = "Authentication and registration endpoints.")
 public class AuthController {
 
     private final AuthService authService;
 
     @PostMapping("/login")
+    @Operation(summary = "Log in", description = "Authenticate with email/username and password.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Login successful."),
+            @ApiResponse(responseCode = "401", description = "Invalid credentials.")
+    })
     public ResponseEntity<AuthResponseDTO> login(@RequestBody LoginRequestDTO request) {
         try {
             AuthResult result = authService.login(request.getEmail(), request.getPassword());
@@ -34,6 +44,12 @@ public class AuthController {
     }
 
     @PostMapping("/register")
+    @Operation(summary = "Register", description = "Create a new user account using a valid email domain.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Registration successful."),
+            @ApiResponse(responseCode = "400", description = "Invalid registration details."),
+            @ApiResponse(responseCode = "409", description = "Email or username already taken.")
+    })
     public ResponseEntity<RegisterResponseDTO> register(@RequestBody RegisterRequestDTO request) {
         try {
             var role = authService.register(
@@ -50,6 +66,11 @@ public class AuthController {
     }
 
     @GetMapping("/username-available")
+    @Operation(summary = "Check username availability")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Availability returned."),
+            @ApiResponse(responseCode = "400", description = "Username is required.")
+    })
     public ResponseEntity<UsernameAvailabilityDTO> usernameAvailable(@RequestParam(required = false) String username) {
         try {
             boolean available = authService.usernameAvailable(username);
