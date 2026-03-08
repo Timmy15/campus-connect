@@ -44,6 +44,7 @@ class EventControllerTest {
         assertThat(response).hasSize(1);
         assertThat(response.get(0).getTitle()).isEqualTo("Demo Day");
         assertThat(response.get(0).getClubName()).isEqualTo("Robotics");
+        assertThat(response.get(0).getClubCategory()).isEqualTo("Tech");
     }
 
     @Test
@@ -55,6 +56,7 @@ class EventControllerTest {
 
         assertThat(response).hasSize(1);
         assertThat(response.get(0).getClubId()).isEqualTo(5L);
+        assertThat(response.get(0).getClubCategory()).isEqualTo("Tech");
     }
 
     @Test
@@ -77,6 +79,7 @@ class EventControllerTest {
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getMessage()).isEqualTo("Event created successfully.");
         assertThat(response.getBody().getEvent().getId()).isEqualTo(10L);
+        assertThat(response.getBody().getEvent().getClubCategory()).isEqualTo("Tech");
     }
 
     @Test
@@ -137,6 +140,7 @@ class EventControllerTest {
         Club club = new Club();
         club.setId(5L);
         club.setName(clubName);
+        club.setCategory("Tech");
         club.setActive(true);
 
         Event event = new Event();
