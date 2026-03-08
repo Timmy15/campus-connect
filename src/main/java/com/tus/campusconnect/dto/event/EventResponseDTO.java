@@ -19,4 +19,7 @@ public class EventResponseDTO {
     private LocalDateTime endTime;
     private Integer capacity;
     private boolean active;
+    private Long registeredCount;
+    private Integer capacityRemaining;
+    private boolean registered;
 }

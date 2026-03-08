@@ -1,6 +1,9 @@
 import { apiRequest, safeJson } from '../utils/api.js';
 import { escapeHtml } from '../utils/dom.js';
 
+let eventState = null;
+let filtersBound = false;
+
 export function renderBrowseEvents() {
     const appRoot = document.getElementById('app-root');
 
@@ -62,14 +65,17 @@ async function loadEvents() {
             return;
         }
         const events = await response.json();
-        const eventState = {
+        eventState = {
             allEvents: events,
             filtered: events
         };
 
-        searchInput.addEventListener('input', () => applyEventFilters(eventState));
-        categorySelect.addEventListener('change', () => applyEventFilters(eventState));
-        sortSelect.addEventListener('change', () => applyEventFilters(eventState));
+        if (!filtersBound) {
+            searchInput.addEventListener('input', () => applyEventFilters(eventState));
+            categorySelect.addEventListener('change', () => applyEventFilters(eventState));
+            sortSelect.addEventListener('change', () => applyEventFilters(eventState));
+            filtersBound = true;
+        }
         populateEventCategories(eventState, categorySelect);
         applyEventFilters(eventState);
     } catch (error) {
@@ -115,7 +121,21 @@ function applyEventFilters(state) {
     }
     emptyEl.classList.add('d-none');
 
-    grid.innerHTML = filtered.map(event => `
+    grid.innerHTML = filtered.map(event => {
+        const remaining = resolveCapacityRemaining(event);
+        const isRegistered = Boolean(event.registered);
+        const isFull = remaining !== null && remaining <= 0;
+        const buttonLabel = isRegistered ? 'Already registered' : (isFull ? 'Full' : 'Register');
+        const buttonDisabled = isRegistered || isFull;
+        const capacityLabel = remaining === null
+            ? 'Capacity unavailable'
+            : `${remaining} place${remaining === 1 ? '' : 's'} left`;
+        const note = isRegistered
+            ? "You're already registered for this event page"
+            : (isFull ? 'Capacity for this event is reached' : '');
+        const noteClass = isFull ? 'text-danger' : 'text-muted';
+
+        return `
         <div class="col-md-6 col-xl-4">
             <div class="card h-100 p-3">
                 <div class="d-flex justify-content-between align-items-start mb-2">
@@ -129,21 +149,24 @@ function applyEventFilters(state) {
                 <div class="text-muted small mb-2">${escapeHtml(event.location || 'Location TBD')}</div>
                 <p class="text-muted small mb-0">${escapeHtml(event.description || 'No description yet.')}</p>
                 <div class="mt-2 d-flex flex-wrap gap-2">
-                    <span class="badge bg-secondary-subtle text-secondary">Capacity ${event.capacity ?? '-'}</span>
+                    <span class="badge bg-secondary-subtle text-secondary">${escapeHtml(capacityLabel)}</span>
                     <span class="badge bg-primary-subtle text-primary">${escapeHtml(normalizeCategory(event.clubCategory))}</span>
                 </div>
                 <div class="mt-3 d-flex justify-content-end">
-                    <button class="btn btn-sm btn-outline-primary" data-action="register" data-id="${event.id}">
-                        Register
+                    <button class="btn btn-sm btn-outline-primary" data-action="register" data-id="${event.id}" ${buttonDisabled ? 'disabled' : ''}>
+                        ${escapeHtml(buttonLabel)}
                     </button>
                 </div>
+                ${note ? `<div class="small mt-2 ${noteClass}" data-role="registration-note">${escapeHtml(note)}</div>` : ''}
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 
     grid.querySelectorAll('button[data-action="register"]').forEach(button => {
         button.addEventListener('click', () => handleEventRegistration(button.dataset.id));
     });
+
 }
 
 async function handleEventRegistration(eventId) {
@@ -163,6 +186,7 @@ async function handleEventRegistration(eventId) {
             return;
         }
         setEventBrowseStatus(data?.message || 'Registration successful.', true);
+        await loadEvents();
     } catch (error) {
         console.warn('Unable to register for event.', error);
         setEventBrowseStatus('Unable to register for this event.', false);
@@ -175,6 +199,7 @@ function populateEventCategories(state, selectEl) {
         categories.add(normalizeCategory(event.clubCategory));
     });
 
+    const selected = selectEl.value;
     const options = Array.from(categories)
         .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
         .map(category => `
@@ -185,6 +210,10 @@ function populateEventCategories(state, selectEl) {
         <option value="">All categories</option>
         ${options.join('')}
     `;
+
+    if (selected) {
+        selectEl.value = selected;
+    }
 }
 
 function formatEventDate(value) {
@@ -208,6 +237,16 @@ function toSortableDate(value) {
 function normalizeCategory(value) {
     const trimmed = (value || '').trim();
     return trimmed || 'Uncategorized';
+}
+
+function resolveCapacityRemaining(event) {
+    if (event && typeof event.capacityRemaining === 'number') {
+        return event.capacityRemaining;
+    }
+    if (event && typeof event.capacity === 'number') {
+        return event.capacity;
+    }
+    return null;
 }
 
 function setEventBrowseStatus(message, isSuccess = false) {

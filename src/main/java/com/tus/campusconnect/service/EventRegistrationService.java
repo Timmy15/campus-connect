@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -63,6 +64,15 @@ public class EventRegistrationService {
 
         eventRegistrationRepository.save(registration);
         return event;
+    }
+
+    @Transactional(readOnly = true)
+    public List<EventRegistration> getRegistrations(Authentication authentication) {
+        User user = requireUser(authentication);
+        return eventRegistrationRepository.findAllByUserIdAndStatusOrderByRegisteredAtDesc(
+                user.getId(),
+                RegistrationStatus.REGISTERED
+        );
     }
 
     private User requireUser(Authentication authentication) {
