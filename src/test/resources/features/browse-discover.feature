@@ -11,5 +11,6 @@ Feature: Browse and discover clubs and events
   Scenario: Filter Events Success
     Given I am logged in as a student
     And there are clubs and events available for browsing
-    When I sort events by date
+    When I filter events by category
+    And I sort events by date
     Then events are ordered chronologically

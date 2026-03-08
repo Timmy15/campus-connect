@@ -47,7 +47,8 @@ public class BrowseSteps {
     private String clubNameMatch;
     private String clubNameOther;
     private String clubCategoryMatch;
-    private String eventTitleMatch;
+    private String eventTitleEarly;
+    private String eventTitleLate;
     private String eventTitleOther;
 
     @Before
@@ -77,12 +78,14 @@ public class BrowseSteps {
         long matchClubId = createClub(admin.token, clubNameMatch, clubCategoryMatch);
         long otherClubId = createClub(admin.token, clubNameOther, "Category-" + UUID.randomUUID().toString().substring(0, 6));
 
-        eventTitleMatch = "EventMatch-" + UUID.randomUUID().toString().substring(0, 6);
+        eventTitleEarly = "EventEarly-" + UUID.randomUUID().toString().substring(0, 6);
+        eventTitleLate = "EventLate-" + UUID.randomUUID().toString().substring(0, 6);
         eventTitleOther = "EventOther-" + UUID.randomUUID().toString().substring(0, 6);
 
         LocalDateTime now = LocalDateTime.now().plusDays(1).withSecond(0).withNano(0);
-        createEvent(admin.token, matchClubId, eventTitleMatch, now.plusHours(2));
-        createEvent(admin.token, otherClubId, eventTitleOther, now.plusHours(1));
+        createEvent(admin.token, matchClubId, eventTitleEarly, now.plusHours(1));
+        createEvent(admin.token, matchClubId, eventTitleLate, now.plusHours(2));
+        createEvent(admin.token, otherClubId, eventTitleOther, now.plusHours(3));
     }
 
     @When("I search for the club by name")
@@ -110,14 +113,13 @@ public class BrowseSteps {
 
     @Then("only matching events are displayed")
     public void onlyMatchingEventsAreDisplayed() {
-        ui.waitForVisible(eventTitleLocator(eventTitleMatch));
+        ui.waitForVisible(eventTitleLocator(eventTitleLate));
         waitForNotPresent(eventTitleLocator(eventTitleOther));
     }
 
     @When("I sort events by date")
     public void iSortEventsByDate() {
-        ui.click(By.id("nav-browse-events"));
-        waitForBrowseCount("eventBrowseCount");
+        ui.waitForVisible(By.id("eventSortSelect"));
 
         Select select = new Select(driver.findElement(By.id("eventSortSelect")));
         select.selectByValue("date-asc");
@@ -132,11 +134,10 @@ public class BrowseSteps {
         String first = titles.get(0).getText().trim();
         String second = titles.get(1).getText().trim();
 
-        assertThat(List.of(first, second)).contains(eventTitleMatch, eventTitleOther);
+        assertThat(List.of(first, second)).contains(eventTitleEarly, eventTitleLate);
 
-        // The "other" event was created an hour earlier, so it should appear first in ascending order.
-        assertThat(first).isEqualTo(eventTitleOther);
-        assertThat(second).isEqualTo(eventTitleMatch);
+        assertThat(first).isEqualTo(eventTitleEarly);
+        assertThat(second).isEqualTo(eventTitleLate);
     }
 
     private long createClub(String token, String name, String category) {
