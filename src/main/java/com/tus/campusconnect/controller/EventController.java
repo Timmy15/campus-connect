@@ -84,10 +84,12 @@ public class EventController {
     }
 
     private EventResponseDTO toDto(Event event) {
+        String clubCategory = event.getClub() != null ? event.getClub().getCategory() : null;
         return new EventResponseDTO(
                 event.getId(),
                 event.getClub() != null ? event.getClub().getId() : null,
                 event.getClub() != null ? event.getClub().getName() : null,
+                clubCategory,
                 event.getTitle(),
                 event.getDescription(),
                 event.getLocation(),

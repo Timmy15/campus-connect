@@ -11,6 +11,7 @@ public class EventResponseDTO {
     private Long id;
     private Long clubId;
     private String clubName;
+    private String clubCategory;
     private String title;
     private String description;
     private String location;
