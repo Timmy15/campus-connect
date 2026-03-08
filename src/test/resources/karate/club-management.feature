@@ -118,6 +118,29 @@ Feature: Club management
     * def names = $response[*].name
     And match names !contains clubName
 
+  Scenario: Admin can reactivate a club
+    * def uuid = java.util.UUID.randomUUID().toString().substring(0, 8)
+    * def clubName = 'Gaming-' + uuid
+
+    Given path '/api/admin/clubs'
+    And header Authorization = adminAuthHeader
+    And request { name: '#(clubName)', description: 'eSports', category: 'Games' }
+    When method post
+    Then status 201
+    * def clubId = response.club.id
+
+    Given path '/api/admin/clubs', clubId
+    And header Authorization = adminAuthHeader
+    When method delete
+    Then status 200
+
+    Given path '/api/admin/clubs', clubId, 'activate'
+    And header Authorization = adminAuthHeader
+    When method put
+    Then status 200
+    And match response.message == 'Club activated successfully.'
+    And match response.club.active == true
+
   Scenario: Student cannot access admin club endpoints
     * def studentLogin = call read('classpath:helpers/login.feature') { email: '#(users.student.email)', password: '#(users.student.password)' }
     * def studentAuthHeader = 'Bearer ' + studentLogin.token

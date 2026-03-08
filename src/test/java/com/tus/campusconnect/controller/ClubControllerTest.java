@@ -204,6 +204,32 @@ class ClubControllerTest {
         assertThat(response.getBody().getMessage()).isEqualTo("Club not found.");
     }
 
+    @Test
+    void activateClubSuccessMarksActive() {
+        Club saved = club(11L, "Hiking", null, null, true);
+
+        when(clubService.activateClub(11L)).thenReturn(saved);
+
+        ResponseEntity<ClubActionResponseDTO> response = clubController.activateClub(11L);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getMessage()).isEqualTo("Club activated successfully.");
+        assertThat(response.getBody().getClub().isActive()).isTrue();
+    }
+
+    @Test
+    void activateClubReturnsNotFoundWhenMissing() {
+        when(clubService.activateClub(100L))
+                .thenThrow(new NotFoundException("Club not found."));
+
+        ResponseEntity<ClubActionResponseDTO> response = clubController.activateClub(100L);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getMessage()).isEqualTo("Club not found.");
+    }
+
     private ClubCreateRequestDTO createRequest(String name, String description, String category) {
         ClubCreateRequestDTO request = new ClubCreateRequestDTO();
         request.setName(name);

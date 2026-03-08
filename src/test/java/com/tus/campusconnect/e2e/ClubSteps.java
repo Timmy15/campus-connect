@@ -116,6 +116,17 @@ public class ClubSteps {
         ui.waitForVisible(inactiveBadgeLocator(name));
     }
 
+    @When("I reactivate the club")
+    public void iReactivateTheClub() {
+        ui.click(By.id("nav-manage-clubs"));
+        ui.waitForVisible(By.id("clubForm"));
+        String name = updatedClubName != null ? updatedClubName : clubName;
+        ui.waitForVisible(inactiveBadgeLocator(name));
+        clickWithFallback(activateButtonLocator(name));
+        waitForClubAction(activeBadgeLocator(name), "Club activated");
+        ui.waitForVisible(activeBadgeLocator(name));
+    }
+
     @Then("the club is hidden from the browse clubs page")
     public void theClubIsHiddenFromTheBrowseClubsPage() {
         ui.click(By.id("nav-browse-clubs"));
@@ -123,6 +134,15 @@ public class ClubSteps {
         waitForBrowseLoaded();
         String name = updatedClubName != null ? updatedClubName : clubName;
         waitForNotPresent(browseCardTitleLocator(name));
+    }
+
+    @Then("the club is visible in the browse clubs page")
+    public void theClubIsVisibleInTheBrowseClubsPage() {
+        ui.click(By.id("nav-browse-clubs"));
+        ui.waitForVisible(By.id("clubBrowseGrid"));
+        waitForBrowseLoaded();
+        String name = updatedClubName != null ? updatedClubName : clubName;
+        ui.waitForVisible(browseCardTitleLocator(name));
     }
 
     @When("I attempt to create another club with the same name")
@@ -150,8 +170,16 @@ public class ClubSteps {
         return By.xpath("//tr[.//div[contains(@class,'fw-semibold') and normalize-space()='" + name + "']]//button[@data-action='deactivate']");
     }
 
+    private By activateButtonLocator(String name) {
+        return By.xpath("//tr[.//div[contains(@class,'fw-semibold') and normalize-space()='" + name + "']]//button[@data-action='activate']");
+    }
+
     private By inactiveBadgeLocator(String name) {
         return By.xpath("//tr[.//div[contains(@class,'fw-semibold') and normalize-space()='" + name + "']]//span[normalize-space()='Inactive']");
+    }
+
+    private By activeBadgeLocator(String name) {
+        return By.xpath("//tr[.//div[contains(@class,'fw-semibold') and normalize-space()='" + name + "']]//span[normalize-space()='Active']");
     }
 
     private By browseCardTitleLocator(String name) {

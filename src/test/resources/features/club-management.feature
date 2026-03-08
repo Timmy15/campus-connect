@@ -22,6 +22,14 @@ Feature: Club Management
     And I deactivate the club
     Then the club is hidden from the browse clubs page
 
+  Scenario: Club reactivation restores visibility
+    Given I am logged in as an admin
+    And I am on the manage clubs page
+    When I create a new club
+    And I deactivate the club
+    And I reactivate the club
+    Then the club is visible in the browse clubs page
+
   Scenario: Duplicate club names are rejected
     Given I am logged in as an admin
     And I am on the manage clubs page
