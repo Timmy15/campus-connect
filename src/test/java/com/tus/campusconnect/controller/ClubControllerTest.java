@@ -22,6 +22,7 @@ import org.springframework.security.core.Authentication;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -87,11 +88,9 @@ class ClubControllerTest {
         when(clubService.createClub(authentication, "Robotics", null, null))
                 .thenThrow(new ConflictException("Club already exists"));
 
-        ResponseEntity<ClubActionResponseDTO> response = clubController.createClub(request, authentication);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getMessage()).isEqualTo("Club already exists");
+        assertThatThrownBy(() -> clubController.createClub(request, authentication))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("Club already exists");
     }
 
     @Test
@@ -101,11 +100,9 @@ class ClubControllerTest {
         when(clubService.createClub(authentication, "   ", null, null))
                 .thenThrow(new BadRequestException("Club name is required."));
 
-        ResponseEntity<ClubActionResponseDTO> response = clubController.createClub(request, authentication);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getMessage()).isEqualTo("Club name is required.");
+        assertThatThrownBy(() -> clubController.createClub(request, authentication))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Club name is required.");
     }
 
     @Test
@@ -115,11 +112,9 @@ class ClubControllerTest {
         when(clubService.createClub(null, "Robotics", null, null))
                 .thenThrow(new UnauthorizedException("User not found."));
 
-        ResponseEntity<ClubActionResponseDTO> response = clubController.createClub(request, null);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getMessage()).isEqualTo("User not found.");
+        assertThatThrownBy(() -> clubController.createClub(request, null))
+                .isInstanceOf(UnauthorizedException.class)
+                .hasMessageContaining("User not found.");
     }
 
     @Test
@@ -145,11 +140,9 @@ class ClubControllerTest {
         when(clubService.updateClub(5L, " ", null, null))
                 .thenThrow(new BadRequestException("Invalid club details."));
 
-        ResponseEntity<ClubActionResponseDTO> response = clubController.updateClub(5L, request);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getMessage()).isEqualTo("Invalid club details.");
+        assertThatThrownBy(() -> clubController.updateClub(5L, request))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Invalid club details.");
     }
 
     @Test
@@ -159,11 +152,9 @@ class ClubControllerTest {
         when(clubService.updateClub(5L, "Robotics", null, null))
                 .thenThrow(new ConflictException("Club already exists"));
 
-        ResponseEntity<ClubActionResponseDTO> response = clubController.updateClub(5L, request);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getMessage()).isEqualTo("Club already exists");
+        assertThatThrownBy(() -> clubController.updateClub(5L, request))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("Club already exists");
     }
 
     @Test
@@ -171,11 +162,10 @@ class ClubControllerTest {
         when(clubService.updateClub(any(Long.class), any(), any(), any()))
                 .thenThrow(new NotFoundException("Club not found."));
 
-        ResponseEntity<ClubActionResponseDTO> response = clubController.updateClub(10L, new ClubUpdateRequestDTO());
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getMessage()).isEqualTo("Club not found.");
+        ClubUpdateRequestDTO request = new ClubUpdateRequestDTO();
+        assertThatThrownBy(() -> clubController.updateClub(10L, request))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Club not found.");
     }
 
     @Test
@@ -197,11 +187,9 @@ class ClubControllerTest {
         when(clubService.deactivateClub(99L))
                 .thenThrow(new NotFoundException("Club not found."));
 
-        ResponseEntity<ClubActionResponseDTO> response = clubController.deactivateClub(99L);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getMessage()).isEqualTo("Club not found.");
+        assertThatThrownBy(() -> clubController.deactivateClub(99L))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Club not found.");
     }
 
     @Test
@@ -223,11 +211,9 @@ class ClubControllerTest {
         when(clubService.activateClub(100L))
                 .thenThrow(new NotFoundException("Club not found."));
 
-        ResponseEntity<ClubActionResponseDTO> response = clubController.activateClub(100L);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getMessage()).isEqualTo("Club not found.");
+        assertThatThrownBy(() -> clubController.activateClub(100L))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Club not found.");
     }
 
     private ClubCreateRequestDTO createRequest(String name, String description, String category) {

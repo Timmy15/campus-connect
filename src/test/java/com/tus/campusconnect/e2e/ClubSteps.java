@@ -10,7 +10,6 @@ import io.cucumber.java.en.When;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -67,7 +66,7 @@ public class ClubSteps {
         ui.type(By.id("clubName"), clubName);
         ui.type(By.id("clubCategory"), "Tech");
         ui.type(By.id("clubDescription"), "Automation test club.");
-        clickWithFallback(By.id("clubFormSubmit"));
+        ui.clickWithFallback(By.id("clubFormSubmit"));
         waitForClubAction(clubNameCellLocator(clubName), "Club created");
     }
 
@@ -80,10 +79,10 @@ public class ClubSteps {
     public void iUpdateTheClubName() {
         updatedClubName = clubName + "-Updated";
         ui.waitForVisible(clubNameCellLocator(clubName));
-        clickWithFallback(editButtonLocator(clubName));
+        ui.clickWithFallback(editButtonLocator(clubName));
         ui.waitForText(By.id("clubFormSubmit"), "Update Club");
         ui.type(By.id("clubName"), updatedClubName);
-        clickWithFallback(By.id("clubFormSubmit"));
+        ui.clickWithFallback(By.id("clubFormSubmit"));
         waitForClubAction(clubNameCellLocator(updatedClubName), "Club updated");
     }
 
@@ -114,7 +113,7 @@ public class ClubSteps {
         ui.waitForVisible(By.id("clubForm"));
         String name = updatedClubName != null ? updatedClubName : clubName;
         ui.waitForVisible(clubNameCellLocator(name));
-        clickWithFallback(deactivateButtonLocator(name));
+        ui.clickWithFallback(deactivateButtonLocator(name));
         acceptConfirm();
         waitForClubAction(inactiveBadgeLocator(name), "Club deactivated");
         ui.waitForVisible(inactiveBadgeLocator(name));
@@ -126,7 +125,7 @@ public class ClubSteps {
         ui.waitForVisible(By.id("clubForm"));
         String name = updatedClubName != null ? updatedClubName : clubName;
         ui.waitForVisible(inactiveBadgeLocator(name));
-        clickWithFallback(activateButtonLocator(name));
+        ui.clickWithFallback(activateButtonLocator(name));
         waitForClubAction(activeBadgeLocator(name), "Club activated");
         ui.waitForVisible(activeBadgeLocator(name));
     }
@@ -154,7 +153,7 @@ public class ClubSteps {
         ui.type(By.id("clubName"), clubName);
         ui.type(By.id("clubCategory"), "Tech");
         ui.type(By.id("clubDescription"), "Duplicate attempt.");
-        clickWithFallback(By.id("clubFormSubmit"));
+        ui.clickWithFallback(By.id("clubFormSubmit"));
     }
 
     @Then("I see a club already exists error")
@@ -194,23 +193,6 @@ public class ClubSteps {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
         wait.until(ExpectedConditions.alertIsPresent());
         driver.switchTo().alert().accept();
-    }
-
-    private void clickWithFallback(By locator) {
-        try {
-            ui.click(locator);
-            return;
-        } catch (RuntimeException ignored) {
-            // Fall back to JavaScript click when Selenium reports an intercepted click.
-        }
-
-        WebElement element = new WebDriverWait(driver, Duration.ofSeconds(5))
-                .until(ExpectedConditions.presenceOfElementLocated(locator));
-        ((JavascriptExecutor) driver).executeScript(
-                "arguments[0].scrollIntoView({block: 'center', inline: 'center'});",
-                element
-        );
-        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", element);
     }
 
     private void waitForNotPresent(By locator) {

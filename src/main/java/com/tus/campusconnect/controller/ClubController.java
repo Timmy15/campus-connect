@@ -4,17 +4,12 @@ import com.tus.campusconnect.dto.club.ClubActionResponseDTO;
 import com.tus.campusconnect.dto.club.ClubCreateRequestDTO;
 import com.tus.campusconnect.dto.club.ClubResponseDTO;
 import com.tus.campusconnect.dto.club.ClubUpdateRequestDTO;
-import com.tus.campusconnect.exception.BadRequestException;
-import com.tus.campusconnect.exception.ConflictException;
-import com.tus.campusconnect.exception.NotFoundException;
-import com.tus.campusconnect.exception.UnauthorizedException;
 import com.tus.campusconnect.model.Club;
 import com.tus.campusconnect.service.ClubService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -58,18 +53,14 @@ public class ClubController {
     @ApiResponse(responseCode = "409", description = "Club already exists.")
     public ResponseEntity<ClubActionResponseDTO> createClub(@RequestBody ClubCreateRequestDTO request,
                                                             Authentication authentication) {
-        try {
-            Club saved = clubService.createClub(
-                    authentication,
-                    request.getName(),
-                    request.getDescription(),
-                    request.getCategory()
-            );
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(new ClubActionResponseDTO("Club created successfully.", toDto(saved)));
-        } catch (BadRequestException | ConflictException | UnauthorizedException ex) {
-            return error(ex.getStatus(), ex.getMessage());
-        }
+        Club saved = clubService.createClub(
+                authentication,
+                request.getName(),
+                request.getDescription(),
+                request.getCategory()
+        );
+        return ResponseEntity.status(201)
+                .body(new ClubActionResponseDTO("Club created successfully.", toDto(saved)));
     }
 
     @PutMapping("/admin/clubs/{id}")
@@ -80,17 +71,13 @@ public class ClubController {
     @ApiResponse(responseCode = "409", description = "Club already exists.")
     public ResponseEntity<ClubActionResponseDTO> updateClub(@PathVariable Long id,
                                                             @RequestBody ClubUpdateRequestDTO request) {
-        try {
-            Club saved = clubService.updateClub(
-                    id,
-                    request.getName(),
-                    request.getDescription(),
-                    request.getCategory()
-            );
-            return ResponseEntity.ok(new ClubActionResponseDTO("Club updated successfully.", toDto(saved)));
-        } catch (BadRequestException | ConflictException | NotFoundException ex) {
-            return error(ex.getStatus(), ex.getMessage());
-        }
+        Club saved = clubService.updateClub(
+                id,
+                request.getName(),
+                request.getDescription(),
+                request.getCategory()
+        );
+        return ResponseEntity.ok(new ClubActionResponseDTO("Club updated successfully.", toDto(saved)));
     }
 
     @DeleteMapping("/admin/clubs/{id}")
@@ -98,12 +85,8 @@ public class ClubController {
     @ApiResponse(responseCode = "200", description = "Club deactivated.")
     @ApiResponse(responseCode = "404", description = "Club not found.")
     public ResponseEntity<ClubActionResponseDTO> deactivateClub(@PathVariable Long id) {
-        try {
-            Club saved = clubService.deactivateClub(id);
-            return ResponseEntity.ok(new ClubActionResponseDTO("Club deactivated successfully.", toDto(saved)));
-        } catch (NotFoundException ex) {
-            return error(ex.getStatus(), ex.getMessage());
-        }
+        Club saved = clubService.deactivateClub(id);
+        return ResponseEntity.ok(new ClubActionResponseDTO("Club deactivated successfully.", toDto(saved)));
     }
 
     @PutMapping("/admin/clubs/{id}/activate")
@@ -111,12 +94,8 @@ public class ClubController {
     @ApiResponse(responseCode = "200", description = "Club activated successfully.")
     @ApiResponse(responseCode = "404", description = "Club not found.")
     public ResponseEntity<ClubActionResponseDTO> activateClub(@PathVariable Long id) {
-        try {
-            Club saved = clubService.activateClub(id);
-            return ResponseEntity.ok(new ClubActionResponseDTO("Club activated successfully.", toDto(saved)));
-        } catch (NotFoundException ex) {
-            return error(ex.getStatus(), ex.getMessage());
-        }
+        Club saved = clubService.activateClub(id);
+        return ResponseEntity.ok(new ClubActionResponseDTO("Club activated successfully.", toDto(saved)));
     }
 
     private ClubResponseDTO toDto(Club club) {
@@ -129,7 +108,4 @@ public class ClubController {
         );
     }
 
-    private ResponseEntity<ClubActionResponseDTO> error(HttpStatus status, String message) {
-        return ResponseEntity.status(status).body(new ClubActionResponseDTO(message, null));
-    }
 }

@@ -21,6 +21,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -86,11 +87,9 @@ class EventControllerTest {
         when(eventService.createEvent(any(Long.class), any(), any(), any(), any(), any(), any()))
                 .thenThrow(new BadRequestException("Capacity must be greater than 0."));
 
-        ResponseEntity<EventActionResponseDTO> response = eventController.createEvent(7L, request);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getMessage()).isEqualTo("Capacity must be greater than 0.");
+        assertThatThrownBy(() -> eventController.createEvent(7L, request))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Capacity must be greater than 0.");
     }
 
     @Test
@@ -118,11 +117,20 @@ class EventControllerTest {
         when(eventService.updateEvent(any(Long.class), any(), any(), any(), any(), any(), any()))
                 .thenThrow(new NotFoundException("Event not found."));
 
-        ResponseEntity<EventActionResponseDTO> response = eventController.updateEvent(99L, new EventUpdateRequestDTO());
+        EventUpdateRequestDTO request = new EventUpdateRequestDTO();
+        assertThatThrownBy(() -> eventController.updateEvent(99L, request))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Event not found.");
+    }
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getMessage()).isEqualTo("Event not found.");
+    @Test
+    void getClubEventsThrowsWhenClubMissing() {
+        when(eventService.getEventsForClub(9L))
+                .thenThrow(new NotFoundException("Club not found."));
+
+        assertThatThrownBy(() -> eventController.getClubEvents(9L))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Club not found.");
     }
 
     private Event event(Long id, String title, String clubName) {

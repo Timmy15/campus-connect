@@ -4,15 +4,12 @@ import com.tus.campusconnect.dto.event.EventActionResponseDTO;
 import com.tus.campusconnect.dto.event.EventCreateRequestDTO;
 import com.tus.campusconnect.dto.event.EventResponseDTO;
 import com.tus.campusconnect.dto.event.EventUpdateRequestDTO;
-import com.tus.campusconnect.exception.BadRequestException;
-import com.tus.campusconnect.exception.NotFoundException;
 import com.tus.campusconnect.model.Event;
 import com.tus.campusconnect.service.EventService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -54,21 +51,17 @@ public class EventController {
     @ApiResponse(responseCode = "404", description = "Club not found.")
     public ResponseEntity<EventActionResponseDTO> createEvent(@PathVariable Long clubId,
                                                               @RequestBody EventCreateRequestDTO request) {
-        try {
-            Event saved = eventService.createEvent(
-                    clubId,
-                    request.getTitle(),
-                    request.getDescription(),
-                    request.getLocation(),
-                    request.getStartTime(),
-                    request.getEndTime(),
-                    request.getCapacity()
-            );
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(new EventActionResponseDTO("Event created successfully.", toDto(saved)));
-        } catch (BadRequestException | NotFoundException ex) {
-            return error(ex.getStatus(), ex.getMessage());
-        }
+        Event saved = eventService.createEvent(
+                clubId,
+                request.getTitle(),
+                request.getDescription(),
+                request.getLocation(),
+                request.getStartTime(),
+                request.getEndTime(),
+                request.getCapacity()
+        );
+        return ResponseEntity.status(201)
+                .body(new EventActionResponseDTO("Event created successfully.", toDto(saved)));
     }
 
     @PutMapping("/admin/events/{eventId}")
@@ -78,20 +71,16 @@ public class EventController {
     @ApiResponse(responseCode = "404", description = "Event not found.")
     public ResponseEntity<EventActionResponseDTO> updateEvent(@PathVariable Long eventId,
                                                               @RequestBody EventUpdateRequestDTO request) {
-        try {
-            Event saved = eventService.updateEvent(
-                    eventId,
-                    request.getTitle(),
-                    request.getDescription(),
-                    request.getLocation(),
-                    request.getStartTime(),
-                    request.getEndTime(),
-                    request.getCapacity()
-            );
-            return ResponseEntity.ok(new EventActionResponseDTO("Event updated successfully.", toDto(saved)));
-        } catch (BadRequestException | NotFoundException ex) {
-            return error(ex.getStatus(), ex.getMessage());
-        }
+        Event saved = eventService.updateEvent(
+                eventId,
+                request.getTitle(),
+                request.getDescription(),
+                request.getLocation(),
+                request.getStartTime(),
+                request.getEndTime(),
+                request.getCapacity()
+        );
+        return ResponseEntity.ok(new EventActionResponseDTO("Event updated successfully.", toDto(saved)));
     }
 
     private EventResponseDTO toDto(Event event) {
@@ -109,7 +98,4 @@ public class EventController {
         );
     }
 
-    private ResponseEntity<EventActionResponseDTO> error(HttpStatus status, String message) {
-        return ResponseEntity.status(status).body(new EventActionResponseDTO(message, null));
-    }
 }

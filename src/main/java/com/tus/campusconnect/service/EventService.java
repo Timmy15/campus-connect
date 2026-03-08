@@ -9,7 +9,9 @@ import com.tus.campusconnect.repository.EventRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Service
@@ -18,6 +20,7 @@ public class EventService {
 
     private final EventRepository eventRepository;
     private final ClubRepository clubRepository;
+    private final Clock clock;
 
     public List<Event> getActiveEvents() {
         return eventRepository.findAllByIsActiveTrueOrderByStartTimeAsc()
@@ -53,7 +56,7 @@ public class EventService {
         event.setEndTime(endTime);
         event.setCapacity(capacity);
         event.setActive(true);
-        event.setCreatedAt(LocalDateTime.now());
+        event.setCreatedAt(LocalDateTime.now(clock));
         event.setClub(club);
 
         return eventRepository.save(event);
@@ -103,7 +106,8 @@ public class EventService {
             throw new BadRequestException("Start time is required.");
         }
 
-        if (startTime.isBefore(LocalDateTime.now())) {
+        LocalDateTime now = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MINUTES);
+        if (startTime.isBefore(now)) {
             throw new BadRequestException("Start time must be in the future.");
         }
 

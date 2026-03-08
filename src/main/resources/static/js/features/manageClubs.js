@@ -263,16 +263,25 @@ function populateClubSelect() {
 
 function setEventFormEnabled(enabled) {
     const form = document.getElementById('eventForm');
-    if (!form) return;
+    if (form === null) {
+        return;
+    }
 
+    const disableInputs = enabled === false;
     form.querySelectorAll('input, textarea, select, button').forEach(el => {
-        el.disabled = !enabled;
+        el.disabled = disableInputs;
     });
 
-    if (!enabled) {
-        setEventStatus('Create a club first to add events.', false);
-    } else {
+    const clubSelect = document.getElementById('eventClubSelect');
+    const isEditingEvent = editEventId !== null;
+    if (clubSelect && isEditingEvent) {
+        clubSelect.disabled = true;
+    }
+
+    if (enabled) {
         setEventStatus('', false);
+    } else {
+        setEventStatus('Create a club first to add events.', false);
     }
 }
 
@@ -379,7 +388,7 @@ async function handleSubmit() {
         return;
     }
 
-    const isEdit = Boolean(editClubId);
+    const isEdit = editClubId !== null;
     const url = isEdit ? `/api/admin/clubs/${editClubId}` : '/api/admin/clubs';
     const method = isEdit ? 'PUT' : 'POST';
 
@@ -503,7 +512,7 @@ async function handleEventSubmit() {
         return;
     }
 
-    const isEdit = Boolean(editEventId);
+    const isEdit = editEventId !== null;
     const url = isEdit ? `/api/admin/events/${editEventId}` : `/api/admin/clubs/${selectedClubId}/events`;
     const method = isEdit ? 'PUT' : 'POST';
 
@@ -612,7 +621,8 @@ function validateEventPayload(payload) {
     if (!payload.location) {
         return 'Event location is required.';
     }
-    if (!payload.capacity || Number.isNaN(payload.capacity) || payload.capacity <= 0) {
+    const capacity = payload.capacity;
+    if (capacity === null || capacity === undefined || Number.isNaN(capacity) || capacity <= 0) {
         return 'Capacity must be greater than 0.';
     }
     if (!payload.startTime) {
@@ -624,7 +634,9 @@ function validateEventPayload(payload) {
         return 'Start time is invalid.';
     }
 
-    if (startDate < new Date()) {
+    const now = new Date();
+    now.setSeconds(0, 0);
+    if (startDate < now) {
         return 'Start time must be in the future.';
     }
 

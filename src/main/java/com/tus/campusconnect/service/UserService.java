@@ -25,7 +25,7 @@ public class UserService {
             throw new UnauthorizedException("User not found.");
         }
 
-        String role = "ROLE_" + user.getRole().name();
+        String role = user.getRole().name();
         return new UserProfileDTO(
                 user.getUsername(),
                 user.getFullName(),

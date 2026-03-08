@@ -16,6 +16,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 
 @Service
@@ -26,6 +27,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final Clock clock;
 
     public AuthResult login(String email, String password) {
         Authentication authentication;
@@ -82,7 +84,7 @@ public class AuthService {
         user.setPasswordHash(passwordEncoder.encode(rawPassword));
         user.setRole(role);
         user.setActive(true);
-        user.setCreatedAt(LocalDateTime.now());
+        user.setCreatedAt(LocalDateTime.now(clock));
 
         userRepository.save(user);
 

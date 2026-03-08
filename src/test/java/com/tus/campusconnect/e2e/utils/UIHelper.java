@@ -43,6 +43,22 @@ public final class UIHelper {
         wait.until(ExpectedConditions.elementToBeClickable(locator)).click();
     }
 
+    public void clickWithFallback(By locator) {
+        try {
+            click(locator);
+            return;
+        } catch (RuntimeException ignored) {
+            // Fall back to JavaScript click when Selenium reports an intercepted click.
+        }
+
+        WebElement element = wait.until(ExpectedConditions.presenceOfElementLocated(locator));
+        ((JavascriptExecutor) driver).executeScript(
+                "arguments[0].scrollIntoView({block: 'center', inline: 'center'});",
+                element
+        );
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", element);
+    }
+
     public void waitForVisible(By locator) {
         wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
     }
@@ -64,6 +80,17 @@ public final class UIHelper {
 
     public String currentUrl() {
         return driver.getCurrentUrl();
+    }
+
+    public void setDateTime(By locator, String value) {
+        WebElement element = wait.until(ExpectedConditions.presenceOfElementLocated(locator));
+        ((JavascriptExecutor) driver).executeScript(
+                "arguments[0].value = arguments[1];" +
+                        "arguments[0].dispatchEvent(new Event('input', { bubbles: true }));" +
+                        "arguments[0].dispatchEvent(new Event('change', { bubbles: true }));",
+                element,
+                value
+        );
     }
 
     public Object executeAsyncScript(String script) {
