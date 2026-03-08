@@ -238,6 +238,35 @@ class EventServiceTest {
     }
 
     @Test
+    void getActiveEventsPreservesRepositoryOrdering() {
+        Club club = new Club();
+        club.setId(10L);
+        club.setName("Ordered Club");
+        club.setActive(true);
+
+        Event early = new Event();
+        early.setId(11L);
+        early.setTitle("Early");
+        early.setActive(true);
+        early.setStartTime(LocalDateTime.of(2026, 3, 9, 10, 0));
+        early.setClub(club);
+
+        Event late = new Event();
+        late.setId(12L);
+        late.setTitle("Late");
+        late.setActive(true);
+        late.setStartTime(LocalDateTime.of(2026, 3, 9, 14, 0));
+        late.setClub(club);
+
+        when(eventRepository.findAllByIsActiveTrueOrderByStartTimeAsc())
+                .thenReturn(List.of(early, late));
+
+        List<Event> result = eventService.getActiveEvents();
+
+        assertThat(result).containsExactly(early, late);
+    }
+
+    @Test
     void getEventsForClubThrowsWhenClubMissing() {
         when(clubRepository.findById(77L)).thenReturn(Optional.empty());
 
