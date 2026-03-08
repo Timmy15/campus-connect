@@ -5,7 +5,6 @@ import com.tus.campusconnect.exception.UnauthorizedException;
 import com.tus.campusconnect.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -25,10 +24,8 @@ public class UserController {
 
     @GetMapping("/me")
     @Operation(summary = "Get current user")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Current user returned."),
-            @ApiResponse(responseCode = "401", description = "Unauthorized.")
-    })
+    @ApiResponse(responseCode = "200", description = "Current user returned.")
+    @ApiResponse(responseCode = "401", description = "Unauthorized.")
     public ResponseEntity<UserProfileDTO> getCurrentUser(Authentication authentication) {
         try {
             UserProfileDTO dto = userService.getCurrentUser(authentication);
