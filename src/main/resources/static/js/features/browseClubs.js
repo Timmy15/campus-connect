@@ -42,7 +42,6 @@ export function renderBrowseClubs() {
 
 async function loadClubs() {
     const countEl = document.getElementById('clubBrowseCount');
-    const grid = document.getElementById('clubBrowseGrid');
     const emptyEl = document.getElementById('clubBrowseEmpty');
     const searchInput = document.getElementById('clubSearchInput');
     const categorySelect = document.getElementById('clubCategoryFilter');
@@ -118,7 +117,9 @@ function populateClubCategories(state, selectEl) {
         categories.add(normalizeCategory(club.category));
     });
 
-    const options = Array.from(categories).sort().map(category => `
+    const options = Array.from(categories)
+        .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+        .map(category => `
         <option value="${escapeHtml(category.toLowerCase())}">${escapeHtml(category)}</option>
     `);
 
@@ -130,5 +131,5 @@ function populateClubCategories(state, selectEl) {
 
 function normalizeCategory(value) {
     const trimmed = (value || '').trim();
-    return trimmed ? trimmed : 'Uncategorized';
+    return trimmed || 'Uncategorized';
 }

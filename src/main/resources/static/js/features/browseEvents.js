@@ -48,7 +48,6 @@ export function renderBrowseEvents() {
 
 async function loadEvents() {
     const countEl = document.getElementById('eventBrowseCount');
-    const grid = document.getElementById('eventBrowseGrid');
     const emptyEl = document.getElementById('eventBrowseEmpty');
     const searchInput = document.getElementById('eventSearchInput');
     const categorySelect = document.getElementById('eventCategoryFilter');
@@ -143,7 +142,9 @@ function populateEventCategories(state, selectEl) {
         categories.add(normalizeCategory(event.clubCategory));
     });
 
-    const options = Array.from(categories).sort().map(category => `
+    const options = Array.from(categories)
+        .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+        .map(category => `
         <option value="${escapeHtml(category.toLowerCase())}">${escapeHtml(category)}</option>
     `);
 
@@ -173,5 +174,5 @@ function toSortableDate(value) {
 
 function normalizeCategory(value) {
     const trimmed = (value || '').trim();
-    return trimmed ? trimmed : 'Uncategorized';
+    return trimmed || 'Uncategorized';
 }
