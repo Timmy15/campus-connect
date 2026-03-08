@@ -53,8 +53,8 @@ public class EventSteps {
         ui.type(By.id("eventTitle"), eventTitle);
         ui.type(By.id("eventLocation"), "Main Hall");
         ui.type(By.id("eventCapacity"), "25");
-        ui.type(By.id("eventStartTime"), futureDateTime(1, 2));
-        ui.type(By.id("eventEndTime"), futureDateTime(1, 4));
+        setDateTime(By.id("eventStartTime"), futureDateTime(1, 2));
+        setDateTime(By.id("eventEndTime"), futureDateTime(1, 4));
         ui.type(By.id("eventDescription"), "Event description.");
         clickWithFallback(By.id("eventFormSubmit"));
         waitForEventAction(eventRowLocator(eventTitle), "Event created");
@@ -79,7 +79,7 @@ public class EventSteps {
         ui.type(By.id("eventTitle"), eventTitle);
         ui.type(By.id("eventLocation"), "Library");
         ui.type(By.id("eventCapacity"), "0");
-        ui.type(By.id("eventStartTime"), futureDateTime(2, 1));
+        setDateTime(By.id("eventStartTime"), futureDateTime(2, 1));
         clickWithFallback(By.id("eventFormSubmit"));
     }
 
@@ -97,7 +97,8 @@ public class EventSteps {
         ui.type(By.id("eventTitle"), updatedEventTitle);
         ui.type(By.id("eventLocation"), "Updated Hall");
         ui.type(By.id("eventCapacity"), "30");
-        ui.type(By.id("eventStartTime"), futureDateTime(3, 1));
+        setDateTime(By.id("eventStartTime"), futureDateTime(3, 1));
+        setDateTime(By.id("eventEndTime"), futureDateTime(3, 3));
         clickWithFallback(By.id("eventFormSubmit"));
         waitForEventAction(eventRowLocator(updatedEventTitle), "Event updated");
     }
@@ -118,7 +119,7 @@ public class EventSteps {
     public void iAttemptToUpdateTheEventWithAPastDate() {
         clickWithFallback(eventEditButtonLocator(eventTitle));
         ui.waitForText(By.id("eventFormSubmit"), "Update Event");
-        ui.type(By.id("eventStartTime"), pastDateTime(1));
+        setDateTime(By.id("eventStartTime"), pastDateTime(1));
         clickWithFallback(By.id("eventFormSubmit"));
     }
 
@@ -180,6 +181,18 @@ public class EventSteps {
                 element
         );
         ((JavascriptExecutor) driver).executeScript("arguments[0].click();", element);
+    }
+
+    private void setDateTime(By locator, String value) {
+        WebElement element = new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(ExpectedConditions.presenceOfElementLocated(locator));
+        ((JavascriptExecutor) driver).executeScript(
+                "arguments[0].value = arguments[1];" +
+                        "arguments[0].dispatchEvent(new Event('input', { bubbles: true }));" +
+                        "arguments[0].dispatchEvent(new Event('change', { bubbles: true }));",
+                element,
+                value
+        );
     }
 
     private void waitForNotPresent(By locator) {

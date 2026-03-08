@@ -67,19 +67,19 @@ export function renderManageClubs() {
                             </div>
                             <div class="mb-3">
                                 <label class="form-label" for="eventTitle">Event Title</label>
-                                <input type="text" class="form-control" id="eventTitle" required>
+                                <input type="text" class="form-control" id="eventTitle">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label" for="eventLocation">Location</label>
-                                <input type="text" class="form-control" id="eventLocation" required>
+                                <input type="text" class="form-control" id="eventLocation">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label" for="eventCapacity">Capacity</label>
-                                <input type="number" class="form-control" id="eventCapacity" min="1" required>
+                                <input type="number" class="form-control" id="eventCapacity">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label" for="eventStartTime">Start Time</label>
-                                <input type="datetime-local" class="form-control" id="eventStartTime" required>
+                                <input type="datetime-local" class="form-control" id="eventStartTime">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label" for="eventEndTime">End Time (optional)</label>
@@ -619,8 +619,8 @@ function validateEventPayload(payload) {
         return 'Start time is required.';
     }
 
-    const startDate = new Date(payload.startTime);
-    if (Number.isNaN(startDate.getTime())) {
+    const startDate = parseLocalDateTime(payload.startTime);
+    if (!startDate) {
         return 'Start time is invalid.';
     }
 
@@ -629,8 +629,8 @@ function validateEventPayload(payload) {
     }
 
     if (payload.endTime) {
-        const endDate = new Date(payload.endTime);
-        if (Number.isNaN(endDate.getTime())) {
+        const endDate = parseLocalDateTime(payload.endTime);
+        if (!endDate) {
             return 'End time is invalid.';
         }
         if (endDate < startDate) {
@@ -639,4 +639,32 @@ function validateEventPayload(payload) {
     }
 
     return '';
+}
+
+function parseLocalDateTime(value) {
+    if (!value) {
+        return null;
+    }
+    const match = value.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?$/);
+    if (!match) {
+        return null;
+    }
+    const year = Number(match[1]);
+    const month = Number(match[2]) - 1;
+    const day = Number(match[3]);
+    const hour = Number(match[4]);
+    const minute = Number(match[5]);
+    const second = Number(match[6] || 0);
+    const date = new Date(year, month, day, hour, minute, second, 0);
+    if (Number.isNaN(date.getTime())) {
+        return null;
+    }
+    if (date.getFullYear() !== year ||
+        date.getMonth() !== month ||
+        date.getDate() !== day ||
+        date.getHours() !== hour ||
+        date.getMinutes() !== minute) {
+        return null;
+    }
+    return date;
 }

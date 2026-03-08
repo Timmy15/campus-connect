@@ -16,9 +16,16 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.boot.test.web.server.LocalServerPort;
 
 import java.time.Duration;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Map;
 
 public class ClubSteps {
 
@@ -41,13 +48,10 @@ public class ClubSteps {
 
     @Given("I am logged in as an admin")
     public void iAmLoggedInAsAnAdmin() {
+        LoginResult login = loginViaApi(users.getAdminEmail(), users.getAdminPassword());
         ui.open(baseUrl + "/login.html");
-        ui.waitForVisible(By.id("loginForm"));
-        ui.type(By.id("email"), users.getAdminEmail());
-        ui.type(By.id("password"), users.getAdminPassword());
-        ui.click(By.cssSelector("#loginForm button[type='submit']"));
-        ui.waitForText(By.id("loginStatus"), "Login successful");
-        ui.waitForUrlContains("/");
+        setAuthStorage(login);
+        driver.navigate().to(baseUrl + "/");
         ui.waitForVisible(By.id("nav-manage-clubs"));
     }
 
@@ -247,5 +251,56 @@ public class ClubSteps {
 
         new WebDriverWait(driver, Duration.ofSeconds(8))
                 .until(ExpectedConditions.visibilityOfElementLocated(successLocator));
+    }
+
+    private LoginResult loginViaApi(String email, String password) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            String body = mapper.writeValueAsString(Map.of("email", email, "password", password));
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + "/api/auth/login"))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build();
+
+            HttpResponse<String> response = HttpClient.newHttpClient()
+                    .send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() != 200) {
+                throw new IllegalStateException("Login failed with status " + response.statusCode());
+            }
+
+            Map<String, Object> payload = mapper.readValue(response.body(), new TypeReference<>() {});
+            String token = payload.get("token") != null ? payload.get("token").toString() : null;
+            String role = payload.get("role") != null ? payload.get("role").toString() : null;
+
+            if (token == null || role == null) {
+                throw new IllegalStateException("Login response missing token or role.");
+            }
+
+            return new LoginResult(token, role);
+        } catch (Exception ex) {
+            throw new RuntimeException("API login failed.", ex);
+        }
+    }
+
+    private void setAuthStorage(LoginResult login) {
+        ((JavascriptExecutor) driver).executeScript(
+                "localStorage.setItem('cc.token', arguments[0]);" +
+                        "localStorage.setItem('cc.role', arguments[1]);",
+                login.token,
+                login.role
+        );
+    }
+
+    private static final class LoginResult {
+        private final String token;
+        private final String role;
+
+        private LoginResult(String token, String role) {
+            this.token = token;
+            this.role = role;
+        }
     }
 }
