@@ -1,3 +1,5 @@
+import { safeJson } from './utils/api.js';
+
 const loginForm = document.getElementById('loginForm');
 const registerForm = document.getElementById('registerForm');
 const loginStatus = document.getElementById('loginStatus');
@@ -39,6 +41,8 @@ const deriveRoleHint = (email) => {
     return 'Email must end with @student.tus.com or @admin.tus.com.';
 };
 
+const readFormValue = (value) => (typeof value === 'string' ? value : '');
+
 const checkUsernameAvailability = async (username) => {
     const value = String(username || '').trim();
     if (!value) {
@@ -57,6 +61,7 @@ const checkUsernameAvailability = async (username) => {
         usernameStatus.textContent = data.message;
         usernameStatus.className = `small mt-1 ${data.available ? 'text-success' : 'text-danger'}`;
     } catch (error) {
+        console.warn('Username availability check failed.', error);
         usernameStatus.textContent = 'Unable to check username.';
         usernameStatus.className = 'small mt-1 text-danger';
     }
@@ -67,9 +72,11 @@ const handleLogin = async (event) => {
     setStatus(loginStatus, '');
 
     const formData = new FormData(loginForm);
+    const emailValue = readFormValue(formData.get('email')).trim();
+    const passwordValue = readFormValue(formData.get('password'));
     const payload = {
-        email: String(formData.get('email') || '').trim(),
-        password: String(formData.get('password') || '')
+        email: emailValue,
+        password: passwordValue
     };
 
     try {
@@ -79,21 +86,17 @@ const handleLogin = async (event) => {
             body: JSON.stringify(payload)
         });
 
+        const data = await safeJson(response);
         if (!response.ok) {
             let message = 'Wrong email/password combo.';
             if (response.status !== 401 && response.status !== 403) {
-                try {
-                    const data = await response.json();
-                    if (data && data.message) message = data.message;
-                } catch (error) {
-                    message = 'Login failed. Please try again.';
-                }
+                const apiMessage = data?.message;
+                message = apiMessage || 'Login failed. Please try again.';
             }
             setStatus(loginStatus, message);
             return;
         }
 
-        const data = await response.json();
         if (!data.token) {
             setStatus(loginStatus, 'Login succeeded but no token was returned.');
             return;
@@ -101,11 +104,12 @@ const handleLogin = async (event) => {
 
         localStorage.setItem('cc.token', data.token);
         localStorage.setItem('cc.role', data.role || 'STUDENT');
-        setStatus(loginStatus, data.message || 'Login successful.', true);
+        setStatus(loginStatus, data?.message || 'Login successful.', true);
         setTimeout(() => {
             globalThis.location.href = '/';
         }, 1200);
     } catch (error) {
+        console.warn('Login request failed.', error);
         setStatus(loginStatus, 'Login service unavailable.');
     }
 };
@@ -115,9 +119,9 @@ const handleRegister = async (event) => {
     setStatus(registerStatus, '');
 
     const payload = {
-        username: String(usernameInput.value || '').trim(),
-        email: String(emailInput.value || '').trim(),
-        password: String(passwordInput.value || '')
+        username: readFormValue(usernameInput.value).trim(),
+        email: readFormValue(emailInput.value).trim(),
+        password: readFormValue(passwordInput.value)
     };
 
     if (!payload.username || !payload.email || !payload.password) {
@@ -143,16 +147,17 @@ const handleRegister = async (event) => {
             body: JSON.stringify(payload)
         });
 
-        const data = await response.json();
+        const data = await safeJson(response);
         if (!response.ok) {
             setStatus(registerStatus, data?.message || 'Registration failed.');
             return;
         }
 
-        setStatus(registerStatus, data.message || 'Registration successful.', true);
+        setStatus(registerStatus, data?.message || 'Registration successful.', true);
         loginForm.querySelector('#email').value = payload.email;
         setActiveView('login');
     } catch (error) {
+        console.warn('Registration request failed.', error);
         setStatus(registerStatus, 'Registration service unavailable.');
     }
 };
@@ -174,7 +179,13 @@ emailInput.addEventListener('input', () => {
     roleHint.textContent = deriveRoleHint(emailInput.value);
     const isRole = roleHint.textContent.startsWith('Role');
     const isError = roleHint.textContent.startsWith('Email must');
-    roleHint.className = `small mt-1 ${isRole ? 'text-success' : isError ? 'text-danger' : 'text-muted'}`;
+    let roleClass = 'small mt-1 text-muted';
+    if (isRole) {
+        roleClass = 'small mt-1 text-success';
+    } else if (isError) {
+        roleClass = 'small mt-1 text-danger';
+    }
+    roleHint.className = roleClass;
 });
 
 setActiveView('login');

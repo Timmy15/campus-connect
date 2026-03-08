@@ -1,3 +1,6 @@
+import { apiRequest } from '../utils/api.js';
+import { escapeHtml } from '../utils/dom.js';
+
 export function renderBrowseClubs() {
     const appRoot = document.getElementById('app-root');
 
@@ -30,7 +33,7 @@ async function loadClubs() {
     const emptyEl = document.getElementById('clubBrowseEmpty');
 
     try {
-        const response = await apiRequest('/api/clubs', { method: 'GET' });
+        const response = await apiRequest('/api/clubs');
         if (!response.ok) {
             countEl.textContent = 'Unable to load clubs.';
             emptyEl.classList.remove('d-none');
@@ -55,28 +58,8 @@ async function loadClubs() {
             </div>
         `).join('');
     } catch (error) {
+        console.warn('Failed to load clubs.', error);
         countEl.textContent = 'Unable to load clubs.';
         emptyEl.classList.remove('d-none');
     }
-}
-
-async function apiRequest(url, options = {}) {
-    const token = localStorage.getItem('cc.token');
-    const headers = {
-        'Content-Type': 'application/json',
-        ...(options.headers || {})
-    };
-    if (token) {
-        headers.Authorization = `Bearer ${token}`;
-    }
-    return fetch(url, {
-        ...options,
-        headers
-    });
-}
-
-function escapeHtml(value) {
-    const div = document.createElement('div');
-    div.textContent = value ?? '';
-    return div.innerHTML;
 }
