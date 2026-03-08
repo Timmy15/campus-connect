@@ -38,7 +38,7 @@ class UserControllerTest {
         user.setRole(Role.ADMIN);
 
         when(authentication.getName()).thenReturn("admin@admin.tus.com");
-        when(userRepository.findByEmail("admin@admin.tus.com")).thenReturn(Optional.of(user));
+        when(userRepository.findByEmailIgnoreCase("admin@admin.tus.com")).thenReturn(Optional.of(user));
 
         ResponseEntity<?> response = userController.getCurrentUser(authentication);
 
@@ -49,7 +49,7 @@ class UserControllerTest {
     @Test
     void getCurrentUserReturnsUnauthorizedWhenUserMissing() {
         when(authentication.getName()).thenReturn("missing@admin.tus.com");
-        when(userRepository.findByEmail("missing@admin.tus.com")).thenReturn(Optional.empty());
+        when(userRepository.findByEmailIgnoreCase("missing@admin.tus.com")).thenReturn(Optional.empty());
 
         ResponseEntity<?> response = userController.getCurrentUser(authentication);
 
