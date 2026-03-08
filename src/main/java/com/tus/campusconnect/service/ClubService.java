@@ -1,0 +1,113 @@
+package com.tus.campusconnect.service;
+
+import com.tus.campusconnect.exception.BadRequestException;
+import com.tus.campusconnect.exception.ConflictException;
+import com.tus.campusconnect.exception.NotFoundException;
+import com.tus.campusconnect.exception.UnauthorizedException;
+import com.tus.campusconnect.model.Club;
+import com.tus.campusconnect.model.User;
+import com.tus.campusconnect.repository.ClubRepository;
+import com.tus.campusconnect.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class ClubService {
+
+    private final ClubRepository clubRepository;
+    private final UserRepository userRepository;
+
+    public List<Club> getActiveClubs() {
+        return clubRepository.findAllByIsActiveTrueOrderByNameAsc();
+    }
+
+    public List<Club> getAllClubs() {
+        return clubRepository.findAllByOrderByNameAsc();
+    }
+
+    public Club createClub(Authentication authentication, String name, String description, String category) {
+        User admin = resolveAdmin(authentication);
+        if (admin == null) {
+            throw new UnauthorizedException("User not found.");
+        }
+
+        String normalizedName = normalize(name);
+        if (normalizedName.isEmpty()) {
+            throw new BadRequestException("Club name is required.");
+        }
+
+        if (clubRepository.existsByNameIgnoreCase(normalizedName)) {
+            throw new ConflictException("Club already exists");
+        }
+
+        Club club = new Club();
+        club.setName(normalizedName);
+        club.setDescription(toNullable(description));
+        club.setCategory(toNullable(category));
+        club.setActive(true);
+        club.setCreatedAt(LocalDateTime.now());
+        club.setAdmin(admin);
+
+        return clubRepository.save(club);
+    }
+
+    public Club updateClub(Long id, String name, String description, String category) {
+        Club club = requireClub(id);
+
+        String normalizedName = normalize(name);
+        if (normalizedName.isEmpty()) {
+            throw new BadRequestException("Invalid club details.");
+        }
+
+        if (!normalizedName.equalsIgnoreCase(club.getName()) && clubRepository.existsByNameIgnoreCase(normalizedName)) {
+            throw new ConflictException("Club already exists");
+        }
+
+        club.setName(normalizedName);
+        club.setDescription(toNullable(description));
+        club.setCategory(toNullable(category));
+
+        return clubRepository.save(club);
+    }
+
+    public Club deactivateClub(Long id) {
+        Club club = requireClub(id);
+
+        club.setActive(false);
+        return clubRepository.save(club);
+    }
+
+    public Club activateClub(Long id) {
+        Club club = requireClub(id);
+
+        club.setActive(true);
+        return clubRepository.save(club);
+    }
+
+    private User resolveAdmin(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            return null;
+        }
+        String identifier = authentication.getName();
+        return userRepository.findByEmailIgnoreCaseOrUsernameIgnoreCase(identifier, identifier).orElse(null);
+    }
+
+    private String normalize(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private String toNullable(String value) {
+        String trimmed = normalize(value);
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private Club requireClub(Long id) {
+        return clubRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Club not found."));
+    }
+}

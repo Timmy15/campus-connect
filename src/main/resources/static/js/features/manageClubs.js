@@ -1,3 +1,6 @@
+import { apiRequest, safeJson } from '../utils/api.js';
+import { escapeHtml } from '../utils/dom.js';
+
 let cachedClubs = [];
 let editClubId = null;
 
@@ -69,9 +72,8 @@ function bindClubForm() {
 }
 
 async function loadClubs() {
-    setClubStatus('');
     try {
-        const response = await apiRequest('/api/admin/clubs', { method: 'GET' });
+        const response = await apiRequest('/api/admin/clubs');
         if (!response.ok) {
             setClubStatus('Unable to load clubs.', false);
             return;
@@ -79,6 +81,7 @@ async function loadClubs() {
         cachedClubs = await response.json();
         renderClubTable();
     } catch (error) {
+        console.warn('Unable to load clubs.', error);
         setClubStatus('Unable to load clubs.', false);
     }
 }
@@ -121,7 +124,10 @@ function renderClubTable() {
                         <td class="text-end">
                             <div class="btn-group btn-group-sm">
                                 <button class="btn btn-outline-primary" data-action="edit" data-id="${club.id}">Edit</button>
-                                <button class="btn btn-outline-danger" data-action="deactivate" data-id="${club.id}" ${club.active ? '' : 'disabled'}>Deactivate</button>
+                                ${club.active
+                                    ? `<button class="btn btn-outline-danger" data-action="deactivate" data-id="${club.id}">Deactivate</button>`
+                                    : `<button class="btn btn-outline-success" data-action="activate" data-id="${club.id}">Activate</button>`
+                                }
                             </div>
                         </td>
                     </tr>
@@ -137,9 +143,14 @@ function renderClubTable() {
     tableWrap.querySelectorAll('button[data-action="deactivate"]').forEach(btn => {
         btn.addEventListener('click', () => handleDeactivate(btn.dataset.id));
     });
+
+    tableWrap.querySelectorAll('button[data-action="activate"]').forEach(btn => {
+        btn.addEventListener('click', () => handleActivate(btn.dataset.id));
+    });
 }
 
 async function handleSubmit() {
+    setClubStatus('');
     const nameInput = document.getElementById('clubName');
     const categoryInput = document.getElementById('clubCategory');
     const descriptionInput = document.getElementById('clubDescription');
@@ -175,6 +186,7 @@ async function handleSubmit() {
         resetForm();
         await loadClubs();
     } catch (error) {
+        console.warn('Unable to save club.', error);
         setClubStatus('Unable to save club.', false);
     }
 }
@@ -199,12 +211,12 @@ function resetForm() {
     document.getElementById('clubFormTitle').textContent = 'Create Club';
     document.getElementById('clubFormSubmit').textContent = 'Create Club';
     document.getElementById('clubFormCancel').classList.add('d-none');
-    setClubStatus('');
 }
 
 async function handleDeactivate(clubId) {
+    setClubStatus('');
     const club = cachedClubs.find(item => String(item.id) === String(clubId));
-    if (!club || !club.active) return;
+    if (!club?.active) return;
 
     const confirmed = globalThis.confirm(`Are you sure you want to deactivate "${club.name}"?`);
     if (!confirmed) return;
@@ -221,7 +233,30 @@ async function handleDeactivate(clubId) {
         setClubStatus(data?.message || 'Club deactivated.', true);
         await loadClubs();
     } catch (error) {
+        console.warn('Unable to deactivate club.', error);
         setClubStatus('Unable to deactivate club.', false);
+    }
+}
+
+async function handleActivate(clubId) {
+    setClubStatus('');
+    const club = cachedClubs.find(item => String(item.id) === String(clubId));
+    if (!club || club.active) return;
+
+    try {
+        const response = await apiRequest(`/api/admin/clubs/${clubId}/activate`, {
+            method: 'PUT'
+        });
+        const data = await safeJson(response);
+        if (!response.ok) {
+            setClubStatus(data?.message || 'Unable to activate club.', false);
+            return;
+        }
+        setClubStatus(data?.message || 'Club activated.', true);
+        await loadClubs();
+    } catch (error) {
+        console.warn('Unable to activate club.', error);
+        setClubStatus('Unable to activate club.', false);
     }
 }
 
@@ -231,33 +266,4 @@ function setClubStatus(message, isSuccess = false) {
     statusEl.textContent = message || '';
     statusEl.classList.toggle('text-success', Boolean(message) && isSuccess);
     statusEl.classList.toggle('text-danger', Boolean(message) && !isSuccess);
-}
-
-async function apiRequest(url, options = {}) {
-    const token = localStorage.getItem('cc.token');
-    const headers = {
-        'Content-Type': 'application/json',
-        ...(options.headers || {})
-    };
-    if (token) {
-        headers.Authorization = `Bearer ${token}`;
-    }
-    return fetch(url, {
-        ...options,
-        headers
-    });
-}
-
-async function safeJson(response) {
-    try {
-        return await response.json();
-    } catch (error) {
-        return null;
-    }
-}
-
-function escapeHtml(value) {
-    const div = document.createElement('div');
-    div.textContent = value ?? '';
-    return div.innerHTML;
 }
