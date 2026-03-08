@@ -5,6 +5,8 @@ Feature: Browse and discover clubs and events
     * header Content-Type = 'application/json'
     * def adminLogin = callonce read('classpath:helpers/login.feature') { email: '#(users.admin.email)', password: '#(users.admin.password)' }
     * def adminAuthHeader = 'Bearer ' + adminLogin.token
+    * def studentLogin = callonce read('classpath:helpers/login.feature') { email: '#(users.student.email)', password: '#(users.student.password)' }
+    * def studentAuthHeader = 'Bearer ' + studentLogin.token
 
   Scenario: Browse clubs and events with category and sorted dates
     * def uuid = java.util.UUID.randomUUID().toString().substring(0, 8)
@@ -28,6 +30,7 @@ Feature: Browse and discover clubs and events
     * def clubIdB = response.club.id
 
     Given path '/api/clubs'
+    And header Authorization = studentAuthHeader
     When method get
     Then status 200
     * def clubA = response.find(x => x.id == clubIdA)
@@ -55,13 +58,14 @@ Feature: Browse and discover clubs and events
     And match response.event.clubCategory == categoryB
 
     Given path '/api/events'
+    And header Authorization = studentAuthHeader
     When method get
     Then status 200
     * def idxEarly = response.findIndex(x => x.title == titleEarly)
     * def idxLate = response.findIndex(x => x.title == titleLate)
     And match idxEarly != -1
     And match idxLate != -1
-    And match idxEarly < idxLate
+    * assert idxEarly < idxLate
     * def earlyEvent = response[idxEarly]
     * def lateEvent = response[idxLate]
     And match earlyEvent.clubCategory == categoryA

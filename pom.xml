@@ -250,6 +250,7 @@
 							</execution>
 						</executions>
 						<configuration>
+							<excludeEngines>cucumber</excludeEngines>
 							<includes>
 								<include>**/*IT.java</include>
 							</includes>
