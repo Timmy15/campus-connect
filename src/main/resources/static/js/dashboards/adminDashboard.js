@@ -88,12 +88,8 @@ export function renderAdminDashboard(user) {
 }
 
 function resetDashboardState() {
-    if (registrationsTable && typeof registrationsTable.destroy === 'function') {
-        registrationsTable.destroy();
-    }
-    if (detailTable && typeof detailTable.destroy === 'function') {
-        detailTable.destroy();
-    }
+    registrationsTable?.destroy?.();
+    detailTable?.destroy?.();
     registrationsTable = null;
     detailTable = null;
     state.events = [];
@@ -120,61 +116,82 @@ function bindDashboardActions() {
     }
 }
 
+function getRegistrationsUi() {
+    return {
+        statusEl: document.getElementById('adminRegistrationsStatus'),
+        emptyEl: document.getElementById('adminRegistrationsEmpty'),
+        tableWrapper: document.getElementById('adminRegistrationsTableWrapper'),
+        loadButton: document.getElementById('adminLoadRegistrations')
+    };
+}
+
+function updateRegistrationsUi(ui, { status, showEmpty, showTable, disableButton } = {}) {
+    if (!ui) {
+        return;
+    }
+    if (typeof disableButton === 'boolean') {
+        if (ui.loadButton) {
+            ui.loadButton.disabled = disableButton;
+        }
+    }
+    if (status !== undefined && ui.statusEl) {
+        ui.statusEl.textContent = status;
+    }
+    if (typeof showEmpty === 'boolean') {
+        ui.emptyEl?.classList.toggle('d-none', !showEmpty);
+    }
+    if (typeof showTable === 'boolean') {
+        ui.tableWrapper?.classList.toggle('d-none', !showTable);
+    }
+}
+
 async function refreshEventsTable({ silent = false } = {}) {
     const requestId = ++state.eventsRequestId;
-    const statusEl = document.getElementById('adminRegistrationsStatus');
-    const emptyEl = document.getElementById('adminRegistrationsEmpty');
-    const tableWrapper = document.getElementById('adminRegistrationsTableWrapper');
-    const loadButton = document.getElementById('adminLoadRegistrations');
-
-    if (!silent) {
-        if (loadButton) {
-            loadButton.disabled = true;
-        }
-        statusEl.textContent = 'Loading event registrations...';
-        emptyEl.classList.add('d-none');
-        tableWrapper.classList.add('d-none');
-    }
+    const ui = silent ? null : getRegistrationsUi();
+    updateRegistrationsUi(ui, {
+        status: 'Loading event registrations...',
+        showEmpty: false,
+        showTable: false,
+        disableButton: true
+    });
 
     try {
         const response = await apiRequest('/api/events');
         const data = await safeJson(response);
-        if (requestId !== state.eventsRequestId) {
+        if (isStaleEventsRequest(requestId)) {
             return;
         }
         if (!response.ok) {
-            if (!silent) {
-                statusEl.textContent = data?.message || 'Unable to load events.';
-            }
+            updateRegistrationsUi(ui, {
+                status: data?.message || 'Unable to load events.'
+            });
             return;
         }
 
-        state.events = Array.isArray(data) ? data : [];
-        if (!state.events.length) {
-            if (!silent) {
-                statusEl.textContent = 'No event data available.';
-                emptyEl.classList.remove('d-none');
-            }
+        const events = Array.isArray(data) ? data : [];
+        state.events = events;
+        if (events.length === 0) {
+            updateRegistrationsUi(ui, {
+                status: 'No event data available.',
+                showEmpty: true,
+                showTable: false
+            });
             return;
         }
 
-        tableWrapper.classList.remove('d-none');
+        updateRegistrationsUi(ui, { showEmpty: false, showTable: true });
         renderEventsTable();
         if (registrationsTable) {
             registrationsTable.columns.adjust();
         }
-        if (!silent) {
-            statusEl.textContent = `Loaded ${state.events.length} event${state.events.length === 1 ? '' : 's'}.`;
-        }
+        updateRegistrationsUi(ui, {
+            status: `Loaded ${events.length} event${events.length === 1 ? '' : 's'}.`
+        });
     } catch (error) {
         console.warn('Unable to load event registrations.', error);
-        if (!silent) {
-            statusEl.textContent = 'Unable to load event registrations.';
-        }
+        updateRegistrationsUi(ui, { status: 'Unable to load event registrations.' });
     } finally {
-        if (!silent && loadButton) {
-            loadButton.disabled = false;
-        }
+        updateRegistrationsUi(ui, { disableButton: false });
     }
 }
 
@@ -184,7 +201,7 @@ function renderEventsTable() {
         return;
     }
 
-    if (window.$ && window.$.fn?.DataTable) {
+    if (globalThis.$?.fn?.DataTable) {
         const columns = [
             {
                 data: 'title',
@@ -216,8 +233,11 @@ function renderEventsTable() {
             }
         ];
 
-        if (!registrationsTable) {
-            registrationsTable = window.$(table).DataTable({
+        if (registrationsTable) {
+            registrationsTable.clear();
+            registrationsTable.rows.add(state.events).draw(false);
+        } else {
+            registrationsTable = globalThis.$(table).DataTable({
                 data: state.events,
                 columns,
                 rowId: (row) => `event-${row.id}`,
@@ -226,9 +246,6 @@ function renderEventsTable() {
                 autoWidth: false,
                 order: [[4, 'desc']]
             });
-        } else {
-            registrationsTable.clear();
-            registrationsTable.rows.add(state.events).draw(false);
         }
 
         bindEventRowClicks();
@@ -257,18 +274,18 @@ function renderEventsTable() {
 
 function bindEventRowClicks() {
     const table = document.getElementById('adminRegistrationsTable');
-    if (!table || !registrationsTable || !window.$) {
-        return;
+    const $ = globalThis.$;
+    if (table && registrationsTable && $) {
+        const $table = $(table);
+        $table.off('click', 'tbody tr');
+        $table.on('click', 'tbody tr', function () {
+            const data = registrationsTable.row(this).data();
+            if (!data) {
+                return;
+            }
+            loadEventRegistrationsForEvent(data.id, data.title || 'Event');
+        });
     }
-    const $table = window.$(table);
-    $table.off('click', 'tbody tr');
-    $table.on('click', 'tbody tr', function () {
-        const data = registrationsTable.row(this).data();
-        if (!data) {
-            return;
-        }
-        loadEventRegistrationsForEvent(data.id, data.title || 'Event');
-    });
 }
 
 function bindEventRowClicksFallback(table) {
@@ -296,7 +313,7 @@ function highlightSelectedEventRow() {
     }
     registrationsTable.rows().every(function () {
         const data = this.data();
-        const isSelected = data && String(data.id) === String(state.selectedEventId);
+        const isSelected = String(data?.id) === String(state.selectedEventId);
         const node = this.node();
         if (node) {
             node.classList.toggle('table-primary', Boolean(isSelected));
@@ -315,68 +332,32 @@ function highlightSelectedEventRowFallback(table) {
 
 async function loadEventRegistrationsForEvent(eventId, eventTitle) {
     const requestId = ++state.detailsRequestId;
-    const detailsCard = document.getElementById('adminEventDetails');
-    const titleEl = document.getElementById('adminEventDetailsTitle');
-    const statusEl = document.getElementById('adminEventDetailsStatus');
-    const emptyEl = document.getElementById('adminEventDetailsEmpty');
-    const tableWrapper = document.getElementById('adminEventDetailsTableWrapper');
-    const refreshButton = document.getElementById('adminEventDetailsRefresh');
-
-    state.selectedEventId = eventId;
-    state.selectedEventTitle = eventTitle || 'Event';
-
-    if (titleEl) {
-        titleEl.textContent = state.selectedEventTitle;
-    }
-
-    if (detailsCard) {
-        detailsCard.classList.remove('d-none');
-    }
-    if (refreshButton) {
-        refreshButton.disabled = true;
-    }
-
-    statusEl.textContent = `Loading registrations for ${state.selectedEventTitle}...`;
-    emptyEl.classList.add('d-none');
-    tableWrapper.classList.add('d-none');
+    const ui = getEventDetailsUi();
+    applySelectedEvent(eventId, eventTitle, ui);
+    setDetailsLoading(ui);
 
     highlightSelectedEventRow();
 
     try {
         const response = await apiRequest(`/api/admin/events/${eventId}/registrations`);
         const data = await safeJson(response);
-        if (requestId !== state.detailsRequestId) {
+        if (isStaleDetailsRequest(requestId)) {
             return;
         }
         if (!response.ok) {
-            statusEl.textContent = data?.message || 'Unable to load registrations.';
+            setDetailsError(ui, data?.message);
             return;
         }
 
-        state.registrations = Array.isArray(data) ? data : [];
-        if (!state.registrations.length) {
-            statusEl.textContent = 'No registrations yet.';
-            emptyEl.classList.remove('d-none');
-            await refreshEventsTable({ silent: true });
-            highlightSelectedEventRow();
-            return;
-        }
-
-        tableWrapper.classList.remove('d-none');
-        renderEventDetailsTable();
-        if (detailTable) {
-            detailTable.columns.adjust();
-        }
-        statusEl.textContent = `Loaded ${state.registrations.length} registration${state.registrations.length === 1 ? '' : 's'}.`;
+        const registrations = Array.isArray(data) ? data : [];
+        updateEventDetails(ui, registrations);
         await refreshEventsTable({ silent: true });
         highlightSelectedEventRow();
     } catch (error) {
         console.warn('Unable to load event registrations.', error);
-        statusEl.textContent = 'Unable to load registrations.';
+        setDetailsError(ui);
     } finally {
-        if (refreshButton) {
-            refreshButton.disabled = false;
-        }
+        setDetailsRefreshState(ui, false);
     }
 }
 
@@ -386,7 +367,7 @@ function renderEventDetailsTable() {
         return;
     }
 
-    if (window.$ && window.$.fn?.DataTable) {
+    if (globalThis.$?.fn?.DataTable) {
         const columns = [
             {
                 data: 'fullName',
@@ -416,8 +397,11 @@ function renderEventDetailsTable() {
             }
         ];
 
-        if (!detailTable) {
-            detailTable = window.$(table).DataTable({
+        if (detailTable) {
+            detailTable.clear();
+            detailTable.rows.add(state.registrations).draw(false);
+        } else {
+            detailTable = globalThis.$(table).DataTable({
                 data: state.registrations,
                 columns,
                 rowId: (row) => `registration-${row.registrationId}`,
@@ -426,9 +410,6 @@ function renderEventDetailsTable() {
                 autoWidth: false,
                 order: [[3, 'desc']]
             });
-        } else {
-            detailTable.clear();
-            detailTable.rows.add(state.registrations).draw(false);
         }
 
         bindDetailActions();
@@ -459,25 +440,25 @@ function renderEventDetailsTable() {
 
 function bindDetailActions() {
     const table = document.getElementById('adminEventDetailsTable');
-    if (!table || !window.$) {
-        return;
+    const $ = globalThis.$;
+    if (table && $) {
+        const $table = $(table);
+        $table.off('click', 'button[data-registration-id]');
+        $table.on('click', 'button[data-registration-id]', async function () {
+            const registrationId = this.dataset.registrationId;
+            if (!registrationId || !state.selectedEventId) {
+                return;
+            }
+            const encodedName = this.dataset.studentName || '';
+            const studentName = encodedName ? decodeURIComponent(encodedName) : 'this student';
+            const confirmed = globalThis.confirm(`Unregister ${studentName} from ${state.selectedEventTitle}?`);
+            if (!confirmed) {
+                return;
+            }
+            this.disabled = true;
+            await unregisterStudent(state.selectedEventId, registrationId);
+        });
     }
-    const $table = window.$(table);
-    $table.off('click', 'button[data-registration-id]');
-    $table.on('click', 'button[data-registration-id]', async function () {
-        const registrationId = this.dataset.registrationId;
-        if (!registrationId || !state.selectedEventId) {
-            return;
-        }
-        const encodedName = this.dataset.studentName || '';
-        const studentName = encodedName ? decodeURIComponent(encodedName) : 'this student';
-        const confirmed = window.confirm(`Unregister ${studentName} from ${state.selectedEventTitle}?`);
-        if (!confirmed) {
-            return;
-        }
-        this.disabled = true;
-        await unregisterStudent(state.selectedEventId, registrationId);
-    });
 }
 
 function bindDetailActionsFallback(table) {
@@ -496,7 +477,7 @@ function bindDetailActionsFallback(table) {
         }
         const encodedName = button.dataset.studentName || '';
         const studentName = encodedName ? decodeURIComponent(encodedName) : 'this student';
-        const confirmed = window.confirm(`Unregister ${studentName} from ${state.selectedEventTitle}?`);
+        const confirmed = globalThis.confirm(`Unregister ${studentName} from ${state.selectedEventTitle}?`);
         if (!confirmed) {
             return;
         }
@@ -541,28 +522,26 @@ function resolveRegisteredCount(event) {
 }
 
 function formatCapacity(event) {
-    if (event && typeof event.capacity === 'number') {
-        return event.capacity;
-    }
-    return 'N/A';
+    return typeof event?.capacity === 'number' ? event.capacity : 'N/A';
 }
 
 function formatRemaining(event) {
-    if (event && typeof event.capacityRemaining === 'number') {
+    if (typeof event?.capacityRemaining === 'number') {
         return event.capacityRemaining;
     }
-    if (event && typeof event.capacity === 'number') {
+    if (typeof event?.capacity === 'number') {
         return Math.max(event.capacity - resolveRegisteredCount(event), 0);
     }
     return 'N/A';
 }
 
 function formatFillPercent(event) {
-    if (!event || typeof event.capacity !== 'number' || event.capacity <= 0) {
+    const capacity = event?.capacity;
+    if (typeof capacity !== 'number' || capacity <= 0) {
         return 'N/A';
     }
     const count = resolveRegisteredCount(event);
-    const percent = Math.min(Math.round((count / event.capacity) * 100), 100);
+    const percent = Math.min(Math.round((count / capacity) * 100), 100);
     return `${percent}%`;
 }
 
@@ -571,4 +550,76 @@ function formatEventDate(value) {
         return 'TBD';
     }
     return value.replace('T', ' ').substring(0, 16);
+}
+
+function getEventDetailsUi() {
+    return {
+        detailsCard: document.getElementById('adminEventDetails'),
+        titleEl: document.getElementById('adminEventDetailsTitle'),
+        statusEl: document.getElementById('adminEventDetailsStatus'),
+        emptyEl: document.getElementById('adminEventDetailsEmpty'),
+        tableWrapper: document.getElementById('adminEventDetailsTableWrapper'),
+        refreshButton: document.getElementById('adminEventDetailsRefresh')
+    };
+}
+
+function applySelectedEvent(eventId, eventTitle, ui) {
+    state.selectedEventId = eventId;
+    state.selectedEventTitle = eventTitle || 'Event';
+
+    if (ui.titleEl) {
+        ui.titleEl.textContent = state.selectedEventTitle;
+    }
+    if (ui.detailsCard) {
+        ui.detailsCard.classList.remove('d-none');
+    }
+    setDetailsRefreshState(ui, true);
+}
+
+function setDetailsRefreshState(ui, disabled) {
+    if (ui.refreshButton) {
+        ui.refreshButton.disabled = disabled;
+    }
+}
+
+function setDetailsLoading(ui) {
+    setDetailsStatus(ui, `Loading registrations for ${state.selectedEventTitle}...`);
+    ui.emptyEl?.classList.add('d-none');
+    ui.tableWrapper?.classList.add('d-none');
+}
+
+function setDetailsStatus(ui, message) {
+    if (ui.statusEl) {
+        ui.statusEl.textContent = message;
+    }
+}
+
+function setDetailsError(ui, message) {
+    setDetailsStatus(ui, message || 'Unable to load registrations.');
+}
+
+function updateEventDetails(ui, registrations) {
+    state.registrations = registrations;
+    if (!registrations.length) {
+        setDetailsStatus(ui, 'No registrations yet.');
+        ui.emptyEl?.classList.remove('d-none');
+        ui.tableWrapper?.classList.add('d-none');
+        return;
+    }
+
+    ui.emptyEl?.classList.add('d-none');
+    ui.tableWrapper?.classList.remove('d-none');
+    renderEventDetailsTable();
+    if (detailTable) {
+        detailTable.columns.adjust();
+    }
+    setDetailsStatus(ui, `Loaded ${registrations.length} registration${registrations.length === 1 ? '' : 's'}.`);
+}
+
+function isStaleEventsRequest(requestId) {
+    return requestId !== state.eventsRequestId;
+}
+
+function isStaleDetailsRequest(requestId) {
+    return requestId !== state.detailsRequestId;
 }

@@ -126,65 +126,95 @@ async function loadUpcomingEvents() {
 }
 
 async function loadRegistrationsSummary() {
-    const countEl = document.getElementById('studentRegistrationCount');
-    const nextEl = document.getElementById('studentRegistrationNext');
-    const followCountEl = document.getElementById('studentFollowCount');
-    const followNextEl = document.getElementById('studentFollowNext');
+    const ui = getRegistrationsSummaryUi();
 
     try {
         const response = await apiRequest('/api/student/registrations');
         const data = await safeJson(response);
         if (!response.ok) {
-            countEl.textContent = '--';
-            nextEl.textContent = 'Unable to load registrations.';
-            if (followCountEl) {
-                followCountEl.textContent = '--';
-            }
-            if (followNextEl) {
-                followNextEl.textContent = 'Unable to load clubs.';
-            }
+            setRegistrationsError(ui);
             return;
         }
 
         const registrations = Array.isArray(data) ? data : [];
-        countEl.textContent = String(registrations.length);
-
-        if (!registrations.length) {
-            nextEl.textContent = 'No registrations yet.';
-            if (followCountEl) {
-                followCountEl.textContent = '0';
-            }
-            if (followNextEl) {
-                followNextEl.textContent = 'No clubs yet.';
-            }
-            return;
-        }
-
-        const latest = registrations[0];
-        const label = `${latest.eventTitle || 'Event'} - ${formatEventDate(latest.startTime)}`;
-        nextEl.textContent = label;
-
-        const clubNames = registrations
-            .map(item => item.clubName)
-            .filter(name => typeof name === 'string' && name.trim().length > 0);
-        const uniqueClubs = new Set(clubNames);
-        if (followCountEl) {
-            followCountEl.textContent = String(uniqueClubs.size);
-        }
-        if (followNextEl) {
-            const latestClub = clubNames.find(name => name && name.trim().length > 0);
-            followNextEl.textContent = latestClub ? `Latest: ${latestClub}` : 'Based on your registrations.';
-        }
+        updateRegistrationsSummary(ui, registrations);
     } catch (error) {
         console.warn('Unable to load registrations.', error);
-        countEl.textContent = '--';
-        nextEl.textContent = 'Unable to load registrations.';
-        if (followCountEl) {
-            followCountEl.textContent = '--';
-        }
-        if (followNextEl) {
-            followNextEl.textContent = 'Unable to load clubs.';
-        }
+        setRegistrationsError(ui);
+    }
+}
+
+function getRegistrationsSummaryUi() {
+    return {
+        countEl: document.getElementById('studentRegistrationCount'),
+        nextEl: document.getElementById('studentRegistrationNext'),
+        followCountEl: document.getElementById('studentFollowCount'),
+        followNextEl: document.getElementById('studentFollowNext')
+    };
+}
+
+function setRegistrationsError(ui) {
+    if (ui.countEl) {
+        ui.countEl.textContent = '--';
+    }
+    if (ui.nextEl) {
+        ui.nextEl.textContent = 'Unable to load registrations.';
+    }
+    if (ui.followCountEl) {
+        ui.followCountEl.textContent = '--';
+    }
+    if (ui.followNextEl) {
+        ui.followNextEl.textContent = 'Unable to load clubs.';
+    }
+}
+
+function updateRegistrationsSummary(ui, registrations) {
+    const count = registrations.length;
+    if (ui.countEl) {
+        ui.countEl.textContent = String(count);
+    }
+
+    if (count === 0) {
+        setRegistrationsEmpty(ui);
+        return;
+    }
+
+    setLatestRegistration(ui, registrations[0]);
+    updateClubSummary(ui, registrations);
+}
+
+function setRegistrationsEmpty(ui) {
+    if (ui.nextEl) {
+        ui.nextEl.textContent = 'No registrations yet.';
+    }
+    if (ui.followCountEl) {
+        ui.followCountEl.textContent = '0';
+    }
+    if (ui.followNextEl) {
+        ui.followNextEl.textContent = 'No clubs yet.';
+    }
+}
+
+function setLatestRegistration(ui, registration) {
+    if (!ui.nextEl) {
+        return;
+    }
+    const label = `${registration.eventTitle || 'Event'} - ${formatEventDate(registration.startTime)}`;
+    ui.nextEl.textContent = label;
+}
+
+function updateClubSummary(ui, registrations) {
+    const clubNames = registrations
+        .map(item => item.clubName?.trim?.())
+        .filter(Boolean);
+    const uniqueClubs = new Set(clubNames);
+
+    if (ui.followCountEl) {
+        ui.followCountEl.textContent = String(uniqueClubs.size);
+    }
+    if (ui.followNextEl) {
+        const latestClub = clubNames[0];
+        ui.followNextEl.textContent = latestClub ? `Latest: ${latestClub}` : 'Based on your registrations.';
     }
 }
 

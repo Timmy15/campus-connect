@@ -57,7 +57,9 @@ class EventRegistrationControllerTest {
         when(eventRegistrationService.registerForEvent(eq(5L), any(Authentication.class)))
                 .thenThrow(new ConflictException("You're already registered for this event page"));
 
-        assertThatThrownBy(() -> eventRegistrationController.registerForEvent(5L, mockAuth()))
+        Authentication auth = mockAuth();
+
+        assertThatThrownBy(() -> eventRegistrationController.registerForEvent(5L, auth))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("already registered");
     }

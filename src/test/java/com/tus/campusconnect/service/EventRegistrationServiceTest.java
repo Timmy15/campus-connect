@@ -30,7 +30,6 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -61,7 +60,7 @@ class EventRegistrationServiceTest {
         User user = new User();
         user.setId(22L);
         user.setEmail("student@student.tus.com");
-        when(userRepository.findByEmailIgnoreCaseOrUsernameIgnoreCase(eq("student@student.tus.com"), eq("student@student.tus.com")))
+        when(userRepository.findByEmailIgnoreCaseOrUsernameIgnoreCase("student@student.tus.com", "student@student.tus.com"))
                 .thenReturn(Optional.of(user));
 
         Club club = new Club();
@@ -104,7 +103,7 @@ class EventRegistrationServiceTest {
 
         User user = new User();
         user.setId(11L);
-        when(userRepository.findByEmailIgnoreCaseOrUsernameIgnoreCase(eq("student@student.tus.com"), eq("student@student.tus.com")))
+        when(userRepository.findByEmailIgnoreCaseOrUsernameIgnoreCase("student@student.tus.com", "student@student.tus.com"))
                 .thenReturn(Optional.of(user));
 
         Club club = new Club();
@@ -133,7 +132,7 @@ class EventRegistrationServiceTest {
 
         User user = new User();
         user.setId(33L);
-        when(userRepository.findByEmailIgnoreCaseOrUsernameIgnoreCase(eq("student@student.tus.com"), eq("student@student.tus.com")))
+        when(userRepository.findByEmailIgnoreCaseOrUsernameIgnoreCase("student@student.tus.com", "student@student.tus.com"))
                 .thenReturn(Optional.of(user));
 
         Club club = new Club();
@@ -164,7 +163,7 @@ class EventRegistrationServiceTest {
 
         User user = new User();
         user.setId(44L);
-        when(userRepository.findByEmailIgnoreCaseOrUsernameIgnoreCase(eq("student@student.tus.com"), eq("student@student.tus.com")))
+        when(userRepository.findByEmailIgnoreCaseOrUsernameIgnoreCase("student@student.tus.com", "student@student.tus.com"))
                 .thenReturn(Optional.of(user));
 
         Event event = new Event();
@@ -184,7 +183,7 @@ class EventRegistrationServiceTest {
 
         User user = new User();
         user.setId(55L);
-        when(userRepository.findByEmailIgnoreCaseOrUsernameIgnoreCase(eq("student@student.tus.com"), eq("student@student.tus.com")))
+        when(userRepository.findByEmailIgnoreCaseOrUsernameIgnoreCase("student@student.tus.com", "student@student.tus.com"))
                 .thenReturn(Optional.of(user));
 
         when(eventRepository.findById(99L)).thenReturn(Optional.empty());
@@ -199,7 +198,7 @@ class EventRegistrationServiceTest {
         Authentication authentication = mock(Authentication.class);
         when(authentication.getName()).thenReturn("missing@student.tus.com");
 
-        when(userRepository.findByEmailIgnoreCaseOrUsernameIgnoreCase(eq("missing@student.tus.com"), eq("missing@student.tus.com")))
+        when(userRepository.findByEmailIgnoreCaseOrUsernameIgnoreCase("missing@student.tus.com", "missing@student.tus.com"))
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> eventRegistrationService.registerForEvent(1L, authentication))
@@ -214,7 +213,7 @@ class EventRegistrationServiceTest {
 
         User user = new User();
         user.setId(66L);
-        when(userRepository.findByEmailIgnoreCaseOrUsernameIgnoreCase(eq("student@student.tus.com"), eq("student@student.tus.com")))
+        when(userRepository.findByEmailIgnoreCaseOrUsernameIgnoreCase("student@student.tus.com", "student@student.tus.com"))
                 .thenReturn(Optional.of(user));
 
         EventRegistration registration = new EventRegistration();
