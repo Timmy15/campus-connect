@@ -7,6 +7,7 @@ Feature: Event registration
     When I click register
     Then my registration is stored on the system
     And I get a registration successful message
+    And my registration appears in My Registrations
 
   Scenario: Event registration already registered failure
     Given I am logged in as a student

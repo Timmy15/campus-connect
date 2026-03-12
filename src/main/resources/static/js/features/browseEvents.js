@@ -3,6 +3,7 @@ import { escapeHtml } from '../utils/dom.js';
 
 let eventState = null;
 let filtersBound = false;
+let registerHandlerBound = false;
 
 export function renderBrowseEvents() {
     const appRoot = document.getElementById('app-root');
@@ -48,6 +49,7 @@ export function renderBrowseEvents() {
     `;
 
     loadEvents();
+    bindRegisterHandler();
 }
 
 async function loadEvents() {
@@ -92,6 +94,7 @@ function applyEventFilters(state) {
     const searchInput = document.getElementById('eventSearchInput');
     const categorySelect = document.getElementById('eventCategoryFilter');
     const sortSelect = document.getElementById('eventSortSelect');
+    const adminView = isAdminUser();
 
     const term = (searchInput.value || '').trim().toLowerCase();
     const category = (categorySelect.value || '').trim().toLowerCase();
@@ -125,15 +128,18 @@ function applyEventFilters(state) {
         const remaining = resolveCapacityRemaining(event);
         const isRegistered = Boolean(event.registered);
         const isFull = remaining !== null && remaining <= 0;
+        const allowRegister = !adminView;
         const buttonLabel = isRegistered ? 'Already registered' : (isFull ? 'Full' : 'Register');
         const buttonDisabled = isRegistered || isFull;
         const capacityLabel = remaining === null
             ? 'Capacity unavailable'
             : `${remaining} place${remaining === 1 ? '' : 's'} left`;
-        const note = isRegistered
-            ? "You're already registered for this event page"
-            : (isFull ? 'Capacity for this event is reached' : '');
-        const noteClass = isFull ? 'text-danger' : 'text-muted';
+        const note = allowRegister
+            ? (isRegistered
+                ? "You're already registered for this event page"
+                : (isFull ? 'Capacity for this event is reached' : ''))
+            : 'Admin accounts cannot register for events.';
+        const noteClass = allowRegister && isFull ? 'text-danger' : 'text-muted';
 
         return `
         <div class="col-md-6 col-xl-4">
@@ -152,21 +158,30 @@ function applyEventFilters(state) {
                     <span class="badge bg-secondary-subtle text-secondary">${escapeHtml(capacityLabel)}</span>
                     <span class="badge bg-primary-subtle text-primary">${escapeHtml(normalizeCategory(event.clubCategory))}</span>
                 </div>
+                ${allowRegister ? `
                 <div class="mt-3 d-flex justify-content-end">
                     <button class="btn btn-sm btn-outline-primary" data-action="register" data-id="${event.id}" ${buttonDisabled ? 'disabled' : ''}>
                         ${escapeHtml(buttonLabel)}
                     </button>
                 </div>
+                ` : ''}
                 ${note ? `<div class="small mt-2 ${noteClass}" data-role="registration-note">${escapeHtml(note)}</div>` : ''}
             </div>
         </div>
-    `;
+    `; 
     }).join('');
+}
 
-    grid.querySelectorAll('button[data-action="register"]').forEach(button => {
-        button.addEventListener('click', () => handleEventRegistration(button.dataset.id));
+function bindRegisterHandler() {
+    if (registerHandlerBound) return;
+    document.addEventListener('click', event => {
+        const button = event.target.closest('button[data-action="register"]');
+        if (!button) return;
+        const grid = document.getElementById('eventBrowseGrid');
+        if (!grid || !grid.contains(button)) return;
+        handleEventRegistration(button.dataset.id);
     });
-
+    registerHandlerBound = true;
 }
 
 async function handleEventRegistration(eventId) {
@@ -237,6 +252,11 @@ function toSortableDate(value) {
 function normalizeCategory(value) {
     const trimmed = (value || '').trim();
     return trimmed || 'Uncategorized';
+}
+
+function isAdminUser() {
+    const role = localStorage.getItem('cc.role') || '';
+    return role.replace('ROLE_', '') === 'ADMIN';
 }
 
 function resolveCapacityRemaining(event) {

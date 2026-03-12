@@ -4,6 +4,8 @@ import com.tus.campusconnect.dto.event.EventRegistrationResponseDTO;
 import com.tus.campusconnect.exception.ConflictException;
 import com.tus.campusconnect.model.Club;
 import com.tus.campusconnect.model.Event;
+import com.tus.campusconnect.model.RegistrationStatus;
+import com.tus.campusconnect.repository.EventRegistrationRepository;
 import com.tus.campusconnect.service.EventRegistrationService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,6 +30,9 @@ class EventRegistrationControllerTest {
     @Mock
     private EventRegistrationService eventRegistrationService;
 
+    @Mock
+    private EventRegistrationRepository eventRegistrationRepository;
+
     @InjectMocks
     private EventRegistrationController eventRegistrationController;
 
@@ -36,6 +41,7 @@ class EventRegistrationControllerTest {
         Event event = event(12L, "Launch");
         when(eventRegistrationService.registerForEvent(eq(12L), any(Authentication.class)))
                 .thenReturn(event);
+        when(eventRegistrationRepository.countByEventIdAndStatus(12L, RegistrationStatus.REGISTERED)).thenReturn(1L);
 
         ResponseEntity<EventRegistrationResponseDTO> response =
                 eventRegistrationController.registerForEvent(12L, mockAuth());

@@ -25,6 +25,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Optional;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -204,6 +205,83 @@ class EventRegistrationServiceTest {
         assertThatThrownBy(() -> eventRegistrationService.registerForEvent(1L, authentication))
                 .isInstanceOf(UnauthorizedException.class)
                 .hasMessageContaining("User not found");
+    }
+
+    @Test
+    void getRegistrationsReturnsRegisteredEvents() {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getName()).thenReturn("student@student.tus.com");
+
+        User user = new User();
+        user.setId(66L);
+        when(userRepository.findByEmailIgnoreCaseOrUsernameIgnoreCase(eq("student@student.tus.com"), eq("student@student.tus.com")))
+                .thenReturn(Optional.of(user));
+
+        EventRegistration registration = new EventRegistration();
+        registration.setId(1L);
+        registration.setStatus(RegistrationStatus.REGISTERED);
+
+        when(eventRegistrationRepository.findAllByUserIdAndStatusOrderByRegisteredAtDesc(66L, RegistrationStatus.REGISTERED))
+                .thenReturn(List.of(registration));
+
+        List<EventRegistration> result = eventRegistrationService.getRegistrations(authentication);
+
+        assertThat(result).containsExactly(registration);
+    }
+
+    @Test
+    void getRegistrationsForEventReturnsRegisteredStudents() {
+        Event event = new Event();
+        event.setId(99L);
+        when(eventRepository.findById(99L)).thenReturn(Optional.of(event));
+
+        EventRegistration registration = new EventRegistration();
+        registration.setId(5L);
+        registration.setStatus(RegistrationStatus.REGISTERED);
+
+        when(eventRegistrationRepository.findAllByEventIdAndStatusOrderByRegisteredAtDesc(99L, RegistrationStatus.REGISTERED))
+                .thenReturn(List.of(registration));
+
+        List<EventRegistration> result = eventRegistrationService.getRegistrationsForEvent(99L);
+
+        assertThat(result).containsExactly(registration);
+    }
+
+    @Test
+    void unregisterRegistrationCancelsRegistration() {
+        Event event = new Event();
+        event.setId(10L);
+        when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
+
+        EventRegistration registration = new EventRegistration();
+        registration.setId(7L);
+        registration.setStatus(RegistrationStatus.REGISTERED);
+
+        when(eventRegistrationRepository.findByIdAndEventId(7L, 10L)).thenReturn(Optional.of(registration));
+
+        LocalDateTime now = stubClock();
+
+        EventRegistration result = eventRegistrationService.unregisterRegistration(10L, 7L);
+
+        assertThat(result.getStatus()).isEqualTo(RegistrationStatus.CANCELLED);
+        assertThat(result.getCancelledAt()).isEqualTo(now);
+    }
+
+    @Test
+    void unregisterRegistrationRejectsCancelledRegistration() {
+        Event event = new Event();
+        event.setId(10L);
+        when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
+
+        EventRegistration registration = new EventRegistration();
+        registration.setId(7L);
+        registration.setStatus(RegistrationStatus.CANCELLED);
+
+        when(eventRegistrationRepository.findByIdAndEventId(7L, 10L)).thenReturn(Optional.of(registration));
+
+        assertThatThrownBy(() -> eventRegistrationService.unregisterRegistration(10L, 7L))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("Registration already cancelled");
     }
 
     private LocalDateTime stubClock() {
