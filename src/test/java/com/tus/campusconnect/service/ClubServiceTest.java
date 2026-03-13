@@ -2,8 +2,12 @@ package com.tus.campusconnect.service;
 
 import com.tus.campusconnect.exception.NotFoundException;
 import com.tus.campusconnect.model.Club;
+import com.tus.campusconnect.model.Event;
+import com.tus.campusconnect.model.EventRegistration;
+import com.tus.campusconnect.model.RegistrationStatus;
 import com.tus.campusconnect.model.User;
 import com.tus.campusconnect.repository.ClubRepository;
+import com.tus.campusconnect.repository.EventRegistrationRepository;
 import com.tus.campusconnect.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,6 +26,9 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ClubServiceTest {
@@ -31,6 +38,9 @@ class ClubServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private EventRegistrationRepository eventRegistrationRepository;
 
     @Mock
     private Clock clock;
@@ -186,6 +196,8 @@ class ClubServiceTest {
 
         when(clubRepository.findById(7L)).thenReturn(Optional.of(club));
         when(clubRepository.save(club)).thenReturn(club);
+        when(eventRegistrationRepository.findAllByEventClubIdAndStatus(eq(7L), eq(RegistrationStatus.REGISTERED)))
+                .thenReturn(List.of());
 
         Club deactivated = clubService.deactivateClub(7L);
 
@@ -237,9 +249,70 @@ class ClubServiceTest {
                 .hasMessageContaining("Club not found");
     }
 
-    private void stubClock() {
-        Instant instant = LocalDateTime.of(2026, 3, 8, 12, 0).atZone(ZONE).toInstant();
+    @Test
+    void deleteClubRemovesClub() {
+        Club club = new Club();
+        club.setId(13L);
+        club.setName("Old Club");
+
+        when(clubRepository.findById(13L)).thenReturn(Optional.of(club));
+
+        Club deleted = clubService.deleteClub(13L);
+
+        assertThat(deleted).isEqualTo(club);
+        verify(clubRepository).delete(club);
+    }
+
+    @Test
+    void deactivateClubCancelsUpcomingRegistrations() {
+        Club club = new Club();
+        club.setId(12L);
+        club.setName("Events Club");
+        club.setActive(true);
+
+        LocalDateTime baseTime = stubClock();
+        Event pastEvent = new Event();
+        pastEvent.setId(1L);
+        pastEvent.setStartTime(baseTime.minusDays(2));
+        pastEvent.setEndTime(baseTime.minusDays(1));
+        pastEvent.setClub(club);
+
+        Event upcomingEvent = new Event();
+        upcomingEvent.setId(2L);
+        upcomingEvent.setStartTime(baseTime.plusHours(2));
+        upcomingEvent.setEndTime(baseTime.plusHours(3));
+        upcomingEvent.setClub(club);
+
+        EventRegistration pastRegistration = new EventRegistration();
+        pastRegistration.setId(10L);
+        pastRegistration.setStatus(RegistrationStatus.REGISTERED);
+        pastRegistration.setEvent(pastEvent);
+
+        EventRegistration upcomingRegistration = new EventRegistration();
+        upcomingRegistration.setId(11L);
+        upcomingRegistration.setStatus(RegistrationStatus.REGISTERED);
+        upcomingRegistration.setEvent(upcomingEvent);
+
+        when(clubRepository.findById(12L)).thenReturn(Optional.of(club));
+        when(clubRepository.save(club)).thenReturn(club);
+        when(eventRegistrationRepository.findAllByEventClubIdAndStatus(eq(12L), eq(RegistrationStatus.REGISTERED)))
+                .thenReturn(List.of(pastRegistration, upcomingRegistration));
+        when(eventRegistrationRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Club deactivated = clubService.deactivateClub(12L);
+
+        assertThat(deactivated.isActive()).isFalse();
+        assertThat(pastRegistration.getStatus()).isEqualTo(RegistrationStatus.REGISTERED);
+        assertThat(upcomingRegistration.getStatus()).isEqualTo(RegistrationStatus.CANCELLED);
+        assertThat(upcomingRegistration.getCancelledAt()).isEqualTo(baseTime);
+        verify(eventRegistrationRepository).saveAll(anyList());
+    }
+
+    private LocalDateTime stubClock() {
+        LocalDateTime baseTime = LocalDateTime.of(2026, 3, 8, 12, 0);
+        Instant instant = baseTime.atZone(ZONE).toInstant();
         when(clock.instant()).thenReturn(instant);
         when(clock.getZone()).thenReturn(ZONE);
+        return baseTime;
     }
 }

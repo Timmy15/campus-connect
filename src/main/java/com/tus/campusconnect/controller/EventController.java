@@ -91,6 +91,15 @@ public class EventController {
         return ResponseEntity.ok(new EventActionResponseDTO("Event updated successfully.", toDto(saved)));
     }
 
+    @DeleteMapping("/admin/events/{eventId}")
+    @Operation(summary = "Delete an event")
+    @ApiResponse(responseCode = "200", description = "Event deleted.")
+    @ApiResponse(responseCode = "404", description = "Event not found.")
+    public ResponseEntity<EventActionResponseDTO> deleteEvent(@PathVariable Long eventId) {
+        Event deleted = eventService.deleteEvent(eventId);
+        return ResponseEntity.ok(new EventActionResponseDTO("Event deleted successfully.", toDto(deleted)));
+    }
+
     private EventResponseDTO toDto(Event event) {
         return toDto(event, null);
     }

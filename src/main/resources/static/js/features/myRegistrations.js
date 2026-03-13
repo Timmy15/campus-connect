@@ -67,19 +67,22 @@ async function loadRegistrations() {
                     </tr>
                 </thead>
                 <tbody>
-                    ${registrations.map(item => `
+                    ${registrations.map(item => {
+                        const badge = getRegistrationBadge(item);
+                        return `
                         <tr>
                             <td class="fw-semibold">${escapeHtml(item.eventTitle || 'Event')}</td>
                             <td>${escapeHtml(item.clubName || 'Club')}</td>
                             <td class="text-muted small">${formatEventDate(item.startTime)}${item.endTime ? ` - ${formatEventDate(item.endTime)}` : ''}</td>
                             <td>${escapeHtml(item.location || 'TBD')}</td>
                             <td>
-                                <span class="badge bg-success-subtle text-success">
-                                    ${escapeHtml(item.status || 'REGISTERED')}
+                                <span class="badge ${badge.className}">
+                                    ${escapeHtml(badge.label)}
                                 </span>
                             </td>
                         </tr>
-                    `).join('')}
+                    `;
+                    }).join('')}
                 </tbody>
             </table>
         `;
@@ -98,4 +101,32 @@ function formatEventDate(value) {
         return 'TBD';
     }
     return value.replace('T', ' ').substring(0, 16);
+}
+
+function getRegistrationBadge(item) {
+    if (isEventCompleted(item)) {
+        return { label: 'COMPLETED', className: 'bg-secondary-subtle text-secondary' };
+    }
+    return { label: item.status || 'REGISTERED', className: 'bg-success-subtle text-success' };
+}
+
+function isEventCompleted(item) {
+    const now = new Date();
+    const end = parseEventDate(item?.endTime);
+    if (end) {
+        return end < now;
+    }
+    const start = parseEventDate(item?.startTime);
+    return Boolean(start && start < now);
+}
+
+function parseEventDate(value) {
+    if (!value) {
+        return null;
+    }
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return null;
+    }
+    return date;
 }

@@ -1,7 +1,6 @@
 import { renderAdminDashboard } from './dashboards/adminDashboard.js';
 import { renderStudentDashboard } from './dashboards/studentDashboard.js';
 import { renderManageClubs } from './features/manageClubs.js';
-import { renderManageEvents } from './features/manageEvents.js';
 import { renderBrowseClubs } from './features/browseClubs.js';
 import { renderBrowseEvents } from './features/browseEvents.js';
 import { renderMyRegistrations } from './features/myRegistrations.js';
@@ -116,7 +115,6 @@ function navigateTo(navId) {
             renderDashboardByRole(role, currentUser);
             break;
         case 'nav-manage-clubs': renderManageClubs(); break;
-        case 'nav-manage-events': renderManageEvents(); break;
         case 'nav-browse-clubs': renderBrowseClubs(); break;
         case 'nav-browse-events': renderBrowseEvents(); break;
         case 'nav-my-registrations': renderMyRegistrations(); break;

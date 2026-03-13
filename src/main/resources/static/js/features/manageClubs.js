@@ -211,6 +211,7 @@ function renderClubTable() {
                                     ? `<button class="btn btn-outline-danger" data-action="deactivate" data-id="${club.id}">Deactivate</button>`
                                     : `<button class="btn btn-outline-success" data-action="activate" data-id="${club.id}">Activate</button>`
                                 }
+                                <button class="btn btn-outline-danger" data-action="delete" data-id="${club.id}">Delete</button>
                             </div>
                         </td>
                     </tr>
@@ -229,6 +230,10 @@ function renderClubTable() {
 
     tableWrap.querySelectorAll('button[data-action="activate"]').forEach(btn => {
         btn.addEventListener('click', () => handleActivate(btn.dataset.id));
+    });
+
+    tableWrap.querySelectorAll('button[data-action="delete"]').forEach(btn => {
+        btn.addEventListener('click', () => handleDeleteClub(btn.dataset.id));
     });
 }
 
@@ -358,6 +363,7 @@ function renderEventTable() {
                         <td class="text-end">
                             <div class="btn-group btn-group-sm">
                                 <button class="btn btn-outline-primary" data-action="edit-event" data-id="${event.id}">Edit</button>
+                                <button class="btn btn-outline-danger" data-action="delete-event" data-id="${event.id}">Delete</button>
                             </div>
                         </td>
                     </tr>
@@ -368,6 +374,10 @@ function renderEventTable() {
 
     tableWrap.querySelectorAll('button[data-action="edit-event"]').forEach(btn => {
         btn.addEventListener('click', () => startEventEdit(btn.dataset.id));
+    });
+
+    tableWrap.querySelectorAll('button[data-action="delete-event"]').forEach(btn => {
+        btn.addEventListener('click', () => handleDeleteEvent(btn.dataset.id));
     });
 }
 
@@ -482,6 +492,44 @@ async function handleActivate(clubId) {
     }
 }
 
+async function handleDeleteClub(clubId) {
+    setClubStatus('');
+    const club = cachedClubs.find(item => String(item.id) === String(clubId));
+    if (!club) {
+        return;
+    }
+
+    const confirmed = globalThis.confirm(`Are you sure you want to delete "${club.name}"?`);
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+        const response = await apiRequest(`/api/admin/clubs/${clubId}/delete`, {
+            method: 'DELETE'
+        });
+        const data = await safeJson(response);
+        if (!response.ok) {
+            setClubStatus(data?.message || 'Unable to delete club.', false);
+            return;
+        }
+
+        if (editClubId && String(editClubId) === String(clubId)) {
+            resetForm();
+        }
+        if (selectedClubId && String(selectedClubId) === String(clubId)) {
+            selectedClubId = null;
+            resetEventForm();
+        }
+
+        setClubStatus(data?.message || 'Club deleted.', true);
+        await loadClubs();
+    } catch (error) {
+        console.warn('Unable to delete club.', error);
+        setClubStatus('Unable to delete club.', false);
+    }
+}
+
 async function handleEventSubmit() {
     setEventStatus('');
 
@@ -534,6 +582,40 @@ async function handleEventSubmit() {
     } catch (error) {
         console.warn('Unable to save event.', error);
         setEventStatus('Unable to save event.', false);
+    }
+}
+
+async function handleDeleteEvent(eventId) {
+    setEventStatus('');
+    const event = cachedEvents.find(item => String(item.id) === String(eventId));
+    if (!event) {
+        return;
+    }
+
+    const confirmed = globalThis.confirm(`Are you sure you want to delete "${event.title || 'this event'}"?`);
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+        const response = await apiRequest(`/api/admin/events/${eventId}`, {
+            method: 'DELETE'
+        });
+        const data = await safeJson(response);
+        if (!response.ok) {
+            setEventStatus(data?.message || 'Unable to delete event.', false);
+            return;
+        }
+
+        if (editEventId && String(editEventId) === String(eventId)) {
+            resetEventForm(true);
+        }
+
+        setEventStatus(data?.message || 'Event deleted.', true);
+        await loadEventsForClub();
+    } catch (error) {
+        console.warn('Unable to delete event.', error);
+        setEventStatus('Unable to delete event.', false);
     }
 }
 

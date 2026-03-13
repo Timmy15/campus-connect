@@ -89,6 +89,15 @@ public class ClubController {
         return ResponseEntity.ok(new ClubActionResponseDTO("Club deactivated successfully.", toDto(saved)));
     }
 
+    @DeleteMapping("/admin/clubs/{id}/delete")
+    @Operation(summary = "Delete a club")
+    @ApiResponse(responseCode = "200", description = "Club deleted.")
+    @ApiResponse(responseCode = "404", description = "Club not found.")
+    public ResponseEntity<ClubActionResponseDTO> deleteClub(@PathVariable Long id) {
+        Club deleted = clubService.deleteClub(id);
+        return ResponseEntity.ok(new ClubActionResponseDTO("Club deleted successfully.", toDto(deleted)));
+    }
+
     @PutMapping("/admin/clubs/{id}/activate")
     @Operation(summary = "Activate a club", description = "Marks a previously deactivated club as active.")
     @ApiResponse(responseCode = "200", description = "Club activated successfully.")
