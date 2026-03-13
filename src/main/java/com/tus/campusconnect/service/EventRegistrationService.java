@@ -38,12 +38,10 @@ public class EventRegistrationService {
             throw new BadRequestException("Event is inactive.");
         }
 
-        boolean alreadyRegistered = eventRegistrationRepository.existsByEventIdAndUserIdAndStatus(
-                eventId,
-                user.getId(),
-                RegistrationStatus.REGISTERED
-        );
-        if (alreadyRegistered) {
+        EventRegistration existingRegistration = eventRegistrationRepository
+                .findByEventIdAndUserId(eventId, user.getId())
+                .orElse(null);
+        if (existingRegistration != null && existingRegistration.getStatus() == RegistrationStatus.REGISTERED) {
             throw new ConflictException("You're already registered for this event page");
         }
 
@@ -56,13 +54,20 @@ public class EventRegistrationService {
             throw new ConflictException("Capacity for this event is reached");
         }
 
-        EventRegistration registration = new EventRegistration();
-        registration.setEvent(event);
-        registration.setUser(user);
-        registration.setStatus(RegistrationStatus.REGISTERED);
-        registration.setRegisteredAt(LocalDateTime.now(clock));
-
-        eventRegistrationRepository.save(registration);
+        LocalDateTime now = LocalDateTime.now(clock);
+        if (existingRegistration != null) {
+            existingRegistration.setStatus(RegistrationStatus.REGISTERED);
+            existingRegistration.setRegisteredAt(now);
+            existingRegistration.setCancelledAt(null);
+            eventRegistrationRepository.save(existingRegistration);
+        } else {
+            EventRegistration registration = new EventRegistration();
+            registration.setEvent(event);
+            registration.setUser(user);
+            registration.setStatus(RegistrationStatus.REGISTERED);
+            registration.setRegisteredAt(now);
+            eventRegistrationRepository.save(registration);
+        }
         return event;
     }
 
@@ -88,6 +93,19 @@ public class EventRegistrationService {
     public EventRegistration unregisterRegistration(Long eventId, Long registrationId) {
         requireEvent(eventId);
         EventRegistration registration = eventRegistrationRepository.findByIdAndEventId(registrationId, eventId)
+                .orElseThrow(() -> new NotFoundException("Registration not found."));
+        if (registration.getStatus() == RegistrationStatus.CANCELLED) {
+            throw new ConflictException("Registration already cancelled.");
+        }
+        registration.setStatus(RegistrationStatus.CANCELLED);
+        registration.setCancelledAt(LocalDateTime.now(clock));
+        return registration;
+    }
+
+    @Transactional
+    public EventRegistration cancelRegistration(Long registrationId, Authentication authentication) {
+        User user = requireUser(authentication);
+        EventRegistration registration = eventRegistrationRepository.findByIdAndUserId(registrationId, user.getId())
                 .orElseThrow(() -> new NotFoundException("Registration not found."));
         if (registration.getStatus() == RegistrationStatus.CANCELLED) {
             throw new ConflictException("Registration already cancelled.");

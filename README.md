@@ -29,6 +29,8 @@ This application lets students browse clubs and events, register for events, and
 - Deactivated clubs are hidden from **Browse Clubs** until reactivated.
 - Past events are hidden from browsing and club event lists.
 - Student registrations show a **COMPLETED** badge for events whose date has passed.
+- Student dashboard registration counts exclude past events and only show active registrations.
+- Students can cancel their event registrations from **My Registrations**.
 - Deactivating a club automatically cancels upcoming/ongoing registrations for that club.
 - Deleting an event removes all registrations for that event.
 - Deleting a club removes all events under it and their registrations (via cascade).
@@ -62,15 +64,31 @@ Once the app is running, open:
 http://localhost:8081/swagger-ui/index.html
 ```
 
-The Swagger UI includes the club activation endpoint:
-`PUT /api/admin/clubs/{id}/activate`
+The Swagger UI documents all endpoints. Key ones are listed below.
 
-It also documents event management endpoints, for example:
-- `POST /api/admin/clubs/{clubId}/events`
-- `PUT /api/admin/events/{eventId}`
-- `DELETE /api/admin/events/{eventId}`
-- `GET /api/events`
+### Public/Authenticated (Student + Admin)
+- `GET /api/clubs` (browse active clubs)
+- `GET /api/events` (browse active events)
 
-Additional admin endpoints include:
-- `DELETE /api/admin/clubs/{id}` (deactivate)
-- `DELETE /api/admin/clubs/{id}/delete` (delete)
+### Student Endpoints
+- `POST /api/student/events/{eventId}/register` (register for an event)
+- `GET /api/student/registrations` (list my registrations)
+- `DELETE /api/student/registrations/{registrationId}` (cancel my registration)
+
+### Admin Club Management
+- `GET /api/admin/clubs` (list all clubs)
+- `POST /api/admin/clubs` (create a club)
+- `PUT /api/admin/clubs/{id}` (update a club)
+- `DELETE /api/admin/clubs/{id}` (deactivate a club)
+- `PUT /api/admin/clubs/{id}/activate` (activate a club)
+- `DELETE /api/admin/clubs/{id}/delete` (delete a club)
+
+### Admin Event Management
+- `GET /api/admin/clubs/{clubId}/events` (list events for a club)
+- `POST /api/admin/clubs/{clubId}/events` (create an event)
+- `PUT /api/admin/events/{eventId}` (update an event)
+- `DELETE /api/admin/events/{eventId}` (delete an event)
+
+### Admin Registration Management
+- `GET /api/admin/events/{eventId}/registrations` (list registrations for an event)
+- `DELETE /api/admin/events/{eventId}/registrations/{registrationId}` (unregister a student)

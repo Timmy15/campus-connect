@@ -44,6 +44,7 @@ public class EventRegistrationSteps {
     private static EventContext openEvent;
     private static EventContext registeredEvent;
     private static EventContext fullEvent;
+    private static EventContext cancelEvent;
     private static String cachedAdminToken;
     private static String cachedStudentToken;
     private static long cachedStudentId;
@@ -216,6 +217,28 @@ public class EventRegistrationSteps {
         assertThat(registered).isFalse();
     }
 
+    @When("I cancel my registration")
+    public void iCancelMyRegistration() {
+        ui.click(By.id("nav-my-registrations"));
+        waitForBrowseCount("registrationCount");
+        ui.waitForVisible(cancelButtonLocator(eventTitle));
+        ui.clickWithFallback(cancelButtonLocator(eventTitle));
+        acceptConfirm();
+    }
+
+    @Then("the registration is removed from the system")
+    public void theRegistrationIsRemovedFromTheSystem() {
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(8));
+        boolean removed = wait.until(d -> !isStudentRegistered());
+        assertThat(removed).isTrue();
+        wait.until(d -> d.findElements(registrationRowLocator(eventTitle)).isEmpty());
+    }
+
+    @Then("I get a cancellation successful message")
+    public void iGetACancellationSuccessfulMessage() {
+        ui.waitForText(By.id("registrationStatus"), "Registration cancelled successfully.");
+    }
+
     private By eventTitleLocator(String title) {
         return By.xpath("//h6[normalize-space()='" + title + "']");
     }
@@ -226,6 +249,14 @@ public class EventRegistrationSteps {
 
     private By registrationNoteLocator(String title) {
         return By.xpath("//div[contains(@class,'card')][.//h6[normalize-space()='" + title + "']]//div[@data-role='registration-note']");
+    }
+
+    private By cancelButtonLocator(String title) {
+        return By.xpath("//tr[.//td[contains(@class,'fw-semibold') and normalize-space()='" + title + "']]//button[@data-action='cancel-registration']");
+    }
+
+    private By registrationRowLocator(String title) {
+        return By.xpath("//tr[.//td[contains(@class,'fw-semibold') and normalize-space()='" + title + "']]");
     }
 
     private void waitForBrowseCount(String countId) {
@@ -239,6 +270,12 @@ public class EventRegistrationSteps {
         ui.click(By.id("nav-browse-events"));
         waitForBrowseCount("eventBrowseCount");
         ui.waitForVisible(eventTitleLocator(eventTitle));
+    }
+
+    private void acceptConfirm() {
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+        wait.until(ExpectedConditions.alertIsPresent());
+        driver.switchTo().alert().accept();
     }
 
     private String readStatusText() {
@@ -405,6 +442,9 @@ public class EventRegistrationSteps {
 
     private EventContext selectEventForScenario() {
         String name = scenarioName == null ? "" : scenarioName.toLowerCase();
+        if (name.contains("cancel")) {
+            return cancelEvent;
+        }
         if (name.contains("already registered")) {
             return registeredEvent;
         }
@@ -435,6 +475,7 @@ public class EventRegistrationSteps {
             openEvent = createEventContext(clubId, "RegEvent-Open");
             registeredEvent = createEventContext(clubId, "RegEvent-Registered");
             fullEvent = createEventContext(clubId, "RegEvent-Full", 1);
+            cancelEvent = createEventContext(clubId, "RegEvent-Cancel");
 
             int registeredStatus = registerEvent(cachedStudentToken, registeredEvent.id);
             if (registeredStatus != 201) {
@@ -444,6 +485,11 @@ public class EventRegistrationSteps {
             int fullStatus = registerEvent(cachedAdminToken, fullEvent.id);
             if (fullStatus != 201) {
                 throw new IllegalStateException("Failed to seed full event: " + fullStatus);
+            }
+
+            int cancelStatus = registerEvent(cachedStudentToken, cancelEvent.id);
+            if (cancelStatus != 201) {
+                throw new IllegalStateException("Failed to seed cancel event: " + cancelStatus);
             }
 
             seedReady = true;

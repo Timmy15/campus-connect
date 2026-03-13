@@ -96,3 +96,60 @@ Feature: Event registration
     When method post
     Then status 409
     And match response.message == 'Capacity for this event is reached'
+
+  Scenario: Event registration cancellation success
+    * def uuid = java.util.UUID.randomUUID().toString().substring(0, 8)
+    * def clubName = 'RegCancel-' + uuid
+
+    Given path '/api/admin/clubs'
+    And header Authorization = adminAuthHeader
+    And request { name: '#(clubName)', description: 'Registration club', category: 'Community' }
+    When method post
+    Then status 201
+    * def clubId = response.club.id
+
+    * def startTime = java.time.LocalDateTime.now().plusDays(1).withSecond(0).withNano(0).toString()
+    * def eventTitle = 'RegCancelEvent-' + uuid
+    Given path '/api/admin/clubs', clubId, 'events'
+    And header Authorization = adminAuthHeader
+    And request { title: '#(eventTitle)', description: 'Registration event', location: 'Hall', startTime: '#(startTime)', capacity: 2 }
+    When method post
+    Then status 201
+    * def eventId = response.event.id
+
+    Given path '/api/student/events', eventId, 'register'
+    And header Authorization = studentAuthHeader
+    When method post
+    Then status 201
+
+    Given path '/api/student/registrations'
+    And header Authorization = studentAuthHeader
+    When method get
+    Then status 200
+    * def registration = response.find(x => x.eventId == eventId)
+    * match registration != null
+    * def registrationId = registration.registrationId
+
+    Given path '/api/student/registrations', registrationId
+    And header Authorization = studentAuthHeader
+    When method delete
+    Then status 200
+    And match response.message == 'Registration cancelled successfully.'
+
+    Given path '/api/student/registrations'
+    And header Authorization = studentAuthHeader
+    When method get
+    Then status 200
+    And match response[*].eventId !contains eventId
+
+    Given path '/api/student/events', eventId, 'register'
+    And header Authorization = studentAuthHeader
+    When method post
+    Then status 201
+    And match response.message == 'Registration successful.'
+
+    Given path '/api/student/registrations'
+    And header Authorization = studentAuthHeader
+    When method get
+    Then status 200
+    And match response[*].eventId contains eventId

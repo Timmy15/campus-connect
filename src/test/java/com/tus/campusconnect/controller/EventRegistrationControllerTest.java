@@ -1,9 +1,12 @@
 package com.tus.campusconnect.controller;
 
 import com.tus.campusconnect.dto.event.EventRegistrationResponseDTO;
+import com.tus.campusconnect.dto.common.MessageResponseDTO;
 import com.tus.campusconnect.exception.ConflictException;
+import com.tus.campusconnect.exception.NotFoundException;
 import com.tus.campusconnect.model.Club;
 import com.tus.campusconnect.model.Event;
+import com.tus.campusconnect.model.EventRegistration;
 import com.tus.campusconnect.model.RegistrationStatus;
 import com.tus.campusconnect.repository.EventRegistrationRepository;
 import com.tus.campusconnect.service.EventRegistrationService;
@@ -62,6 +65,31 @@ class EventRegistrationControllerTest {
         assertThatThrownBy(() -> eventRegistrationController.registerForEvent(5L, auth))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("already registered");
+    }
+
+    @Test
+    void cancelMyRegistrationReturnsOk() {
+        when(eventRegistrationService.cancelRegistration(eq(42L), any(Authentication.class)))
+                .thenReturn(new EventRegistration());
+
+        ResponseEntity<MessageResponseDTO> response =
+                eventRegistrationController.cancelMyRegistration(42L, mockAuth());
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getMessage()).isEqualTo("Registration cancelled successfully.");
+    }
+
+    @Test
+    void cancelMyRegistrationRejectsMissingRegistration() {
+        when(eventRegistrationService.cancelRegistration(eq(99L), any(Authentication.class)))
+                .thenThrow(new NotFoundException("Registration not found."));
+
+        Authentication auth = mockAuth();
+
+        assertThatThrownBy(() -> eventRegistrationController.cancelMyRegistration(99L, auth))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Registration not found");
     }
 
     private Authentication mockAuth() {
