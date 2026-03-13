@@ -48,7 +48,7 @@ public class ClubSteps {
     @Given("I am logged in as an admin")
     public void iAmLoggedInAsAnAdmin() {
         LoginResult login = loginViaApi(users.getAdminEmail(), users.getAdminPassword());
-        ui.open(baseUrl + "/login.html");
+        ui.open(baseUrl + "/");
         setAuthStorage(login);
         driver.navigate().to(baseUrl + "/");
         ui.waitForVisible(By.id("nav-manage-clubs"));

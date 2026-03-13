@@ -35,7 +35,7 @@ public class AuthSteps {
 
     @Given("I am on the login page")
     public void iAmOnTheLoginPage() {
-        ui.open(baseUrl + "/login.html");
+        ui.open(baseUrl + "/");
         ui.waitForVisible(By.id("loginForm"));
     }
 
@@ -83,7 +83,7 @@ public class AuthSteps {
 
     @Then("I remain on the login page")
     public void iRemainOnTheLoginPage() {
-        assertThat(ui.currentUrl()).contains("/login.html");
+        ui.waitForVisible(By.id("loginForm"));
     }
 
     @When("I attempt to access the admin endpoint")

@@ -4,6 +4,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tus.campusconnect.e2e.utils.SharedWebDriver;
 import com.tus.campusconnect.e2e.utils.UIHelper;
+import com.tus.campusconnect.repository.ClubRepository;
+import com.tus.campusconnect.repository.EventRegistrationRepository;
+import com.tus.campusconnect.repository.EventRepository;
 import com.tus.campusconnect.testsupport.TestUsers;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
@@ -16,6 +19,7 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -50,6 +54,17 @@ public class BrowseSteps {
     private String eventTitleEarly;
     private String eventTitleLate;
     private String eventTitleOther;
+    private String participationEventTitle;
+    private String participationClubName;
+
+    @Autowired
+    private EventRegistrationRepository eventRegistrationRepository;
+
+    @Autowired
+    private EventRepository eventRepository;
+
+    @Autowired
+    private ClubRepository clubRepository;
 
     @Before
     public void setUp() {
@@ -58,10 +73,54 @@ public class BrowseSteps {
         baseUrl = "http://localhost:" + port;
     }
 
+    @Given("participation data exists")
+    public void participationDataExists() {
+        LoginResult admin = loginViaApi(users.getAdminEmail(), users.getAdminPassword());
+        LoginResult student = loginViaApi(users.getStudentEmail(), users.getStudentPassword());
+
+        participationClubName = "DashClub-" + UUID.randomUUID().toString().substring(0, 6);
+        participationEventTitle = "DashEvent-" + UUID.randomUUID().toString().substring(0, 6);
+
+        long clubId = createClub(admin.token, participationClubName, "Engagement");
+
+        LocalDateTime startTime = LocalDateTime.now().plusDays(1).withSecond(0).withNano(0);
+        long eventId = createEvent(admin.token, clubId, participationEventTitle, startTime);
+        registerForEvent(student.token, eventId);
+    }
+
+    @Given("no participation data exists")
+    public void noParticipationDataExists() {
+        eventRegistrationRepository.deleteAll();
+        eventRepository.deleteAll();
+        clubRepository.deleteAll();
+        participationClubName = null;
+        participationEventTitle = null;
+    }
+
+    @When("I open the participation dashboard")
+    public void iOpenTheParticipationDashboard() {
+        ui.click(By.id("nav-dashboard"));
+        ui.waitForVisible(By.id("adminLoadParticipation"));
+        ui.click(By.id("adminLoadParticipation"));
+    }
+
+    @Then("I see participation charts")
+    public void iSeeParticipationCharts() {
+        ui.waitForVisible(By.id("adminParticipationCharts"));
+        ui.waitForVisible(By.id("adminEventRegistrationsChart"));
+        ui.waitForVisible(By.id("adminTopClubsChart"));
+    }
+
+    @Then("I see a participation no data message")
+    public void iSeeParticipationNoDataMessage() {
+        ui.waitForText(By.id("adminParticipationStatus"), "No data available.");
+        ui.waitForVisible(By.id("adminParticipationEmpty"));
+    }
+
     @Given("I am logged in as a student")
     public void iAmLoggedInAsAStudent() {
         LoginResult login = loginViaApi(users.getStudentEmail(), users.getStudentPassword());
-        ui.open(baseUrl + "/login.html");
+        ui.open(baseUrl + "/");
         setAuthStorage(login);
         driver.navigate().to(baseUrl + "/");
         ui.waitForVisible(By.id("nav-browse-clubs"));
@@ -168,7 +227,7 @@ public class BrowseSteps {
         }
     }
 
-    private void createEvent(String token, long clubId, String title, LocalDateTime startTime) {
+    private long createEvent(String token, long clubId, String title, LocalDateTime startTime) {
         try {
             String body = mapper.writeValueAsString(Map.of(
                     "title", title,
@@ -190,8 +249,30 @@ public class BrowseSteps {
             if (response.statusCode() != 201) {
                 throw new IllegalStateException("Failed to create event: " + response.statusCode());
             }
+            Map<String, Object> payload = mapper.readValue(response.body(), new TypeReference<>() {});
+            Map<String, Object> event = (Map<String, Object>) payload.get("event");
+            return ((Number) event.get("id")).longValue();
         } catch (Exception ex) {
             throw new RuntimeException("Failed to create event via API.", ex);
+        }
+    }
+
+    private void registerForEvent(String token, long eventId) {
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + "/api/student/events/" + eventId + "/register"))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + token)
+                    .POST(HttpRequest.BodyPublishers.noBody())
+                    .build();
+
+            HttpResponse<String> response = HttpClient.newHttpClient()
+                    .send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 201) {
+                throw new IllegalStateException("Failed to register for event: " + response.statusCode());
+            }
+        } catch (Exception ex) {
+            throw new RuntimeException("Failed to register for event via API.", ex);
         }
     }
 

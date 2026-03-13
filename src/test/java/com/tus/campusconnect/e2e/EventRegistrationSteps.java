@@ -7,6 +7,7 @@ import com.tus.campusconnect.e2e.utils.UIHelper;
 import com.tus.campusconnect.model.RegistrationStatus;
 import com.tus.campusconnect.model.User;
 import com.tus.campusconnect.repository.EventRegistrationRepository;
+import com.tus.campusconnect.repository.EventRepository;
 import com.tus.campusconnect.repository.UserRepository;
 import com.tus.campusconnect.testsupport.TestUsers;
 import io.cucumber.java.Before;
@@ -54,6 +55,9 @@ public class EventRegistrationSteps {
 
     @Autowired
     private EventRegistrationRepository eventRegistrationRepository;
+
+    @Autowired
+    private EventRepository eventRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -455,13 +459,14 @@ public class EventRegistrationSteps {
     }
 
     private void ensureSeedData() {
-        if (seedReady) {
+        if (seedReady && seedDataAvailable()) {
             return;
         }
         synchronized (DATA_LOCK) {
-            if (seedReady) {
+            if (seedReady && seedDataAvailable()) {
                 return;
             }
+            seedReady = false;
 
             LoginResult admin = loginViaApi(users.getAdminEmail(), users.getAdminPassword());
             LoginResult student = loginViaApi(users.getStudentEmail(), users.getStudentPassword());
@@ -494,6 +499,16 @@ public class EventRegistrationSteps {
 
             seedReady = true;
         }
+    }
+
+    private boolean seedDataAvailable() {
+        if (openEvent == null || registeredEvent == null || fullEvent == null || cancelEvent == null) {
+            return false;
+        }
+        return eventRepository.existsById(openEvent.id)
+                && eventRepository.existsById(registeredEvent.id)
+                && eventRepository.existsById(fullEvent.id)
+                && eventRepository.existsById(cancelEvent.id);
     }
 
     private EventContext createEventContext(long clubId, String baseTitle) {
