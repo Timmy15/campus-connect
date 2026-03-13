@@ -283,6 +283,84 @@ class EventRegistrationServiceTest {
                 .hasMessageContaining("Registration already cancelled");
     }
 
+    @Test
+    void cancelRegistrationCancelsRegistration() {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getName()).thenReturn("student@student.tus.com");
+
+        User user = new User();
+        user.setId(77L);
+        user.setEmail("student@student.tus.com");
+        when(userRepository.findByEmailIgnoreCaseOrUsernameIgnoreCase("student@student.tus.com", "student@student.tus.com"))
+                .thenReturn(Optional.of(user));
+
+        EventRegistration registration = new EventRegistration();
+        registration.setId(5L);
+        registration.setStatus(RegistrationStatus.REGISTERED);
+
+        when(eventRegistrationRepository.findByIdAndUserId(5L, 77L)).thenReturn(Optional.of(registration));
+
+        LocalDateTime now = stubClock();
+
+        EventRegistration result = eventRegistrationService.cancelRegistration(5L, authentication);
+
+        assertThat(result.getStatus()).isEqualTo(RegistrationStatus.CANCELLED);
+        assertThat(result.getCancelledAt()).isEqualTo(now);
+    }
+
+    @Test
+    void cancelRegistrationRejectsCancelledRegistration() {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getName()).thenReturn("student@student.tus.com");
+
+        User user = new User();
+        user.setId(88L);
+        user.setEmail("student@student.tus.com");
+        when(userRepository.findByEmailIgnoreCaseOrUsernameIgnoreCase("student@student.tus.com", "student@student.tus.com"))
+                .thenReturn(Optional.of(user));
+
+        EventRegistration registration = new EventRegistration();
+        registration.setId(6L);
+        registration.setStatus(RegistrationStatus.CANCELLED);
+
+        when(eventRegistrationRepository.findByIdAndUserId(6L, 88L)).thenReturn(Optional.of(registration));
+
+        assertThatThrownBy(() -> eventRegistrationService.cancelRegistration(6L, authentication))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("Registration already cancelled");
+    }
+
+    @Test
+    void cancelRegistrationThrowsWhenRegistrationMissing() {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getName()).thenReturn("student@student.tus.com");
+
+        User user = new User();
+        user.setId(99L);
+        user.setEmail("student@student.tus.com");
+        when(userRepository.findByEmailIgnoreCaseOrUsernameIgnoreCase("student@student.tus.com", "student@student.tus.com"))
+                .thenReturn(Optional.of(user));
+
+        when(eventRegistrationRepository.findByIdAndUserId(101L, 99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> eventRegistrationService.cancelRegistration(101L, authentication))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Registration not found");
+    }
+
+    @Test
+    void cancelRegistrationThrowsWhenUserMissing() {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getName()).thenReturn("missing@student.tus.com");
+
+        when(userRepository.findByEmailIgnoreCaseOrUsernameIgnoreCase("missing@student.tus.com", "missing@student.tus.com"))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> eventRegistrationService.cancelRegistration(1L, authentication))
+                .isInstanceOf(UnauthorizedException.class)
+                .hasMessageContaining("User not found");
+    }
+
     private LocalDateTime stubClock() {
         LocalDateTime baseTime = LocalDateTime.of(2026, 3, 8, 12, 0);
         Instant instant = baseTime.atZone(ZONE).toInstant();
