@@ -19,6 +19,7 @@ This application lets students browse clubs and events, register for events, and
 ## Using the Dashboard
 - The navigation shows only the items your role can access.
 - Your username is shown on the dashboard so you can confirm the logged-in account.
+- Admins can open the participation dashboard to view charts for registrations per event and top clubs by registrations.
 - Admins can create, update, deactivate, reactivate, and delete clubs from **Manage Clubs**.
 - Admins can create, update, and delete events for a club from **Manage Clubs** (Event Management section).
 - Events require a future start date and a capacity greater than zero.
