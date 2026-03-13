@@ -24,3 +24,11 @@ Feature: Event registration
     When I click register
     Then I get a message "Capacity for this event is reached"
     And I'm not registered for the event
+
+  Scenario: Event registration cancellation success
+    Given I am logged in as a student
+    And I am on the event registration page for an event
+    And I'm already registered for the event
+    When I cancel my registration
+    Then the registration is removed from the system
+    And I get a cancellation successful message
