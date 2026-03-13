@@ -169,7 +169,8 @@ function setRegistrationsError(ui) {
 }
 
 function updateRegistrationsSummary(ui, registrations) {
-    const count = registrations.length;
+    const activeRegistrations = registrations.filter(isRegistrationActive);
+    const count = activeRegistrations.length;
     if (ui.countEl) {
         ui.countEl.textContent = String(count);
     }
@@ -179,13 +180,13 @@ function updateRegistrationsSummary(ui, registrations) {
         return;
     }
 
-    setLatestRegistration(ui, registrations[0]);
-    updateClubSummary(ui, registrations);
+    setLatestRegistration(ui, activeRegistrations[0]);
+    updateClubSummary(ui, activeRegistrations);
 }
 
 function setRegistrationsEmpty(ui) {
     if (ui.nextEl) {
-        ui.nextEl.textContent = 'No registrations yet.';
+        ui.nextEl.textContent = 'No active registrations.';
     }
     if (ui.followCountEl) {
         ui.followCountEl.textContent = '0';
@@ -223,4 +224,29 @@ function formatEventDate(value) {
         return 'TBD';
     }
     return value.replace('T', ' ').substring(0, 16);
+}
+
+function isRegistrationActive(item) {
+    return !isEventCompleted(item);
+}
+
+function isEventCompleted(item) {
+    const now = new Date();
+    const end = parseEventDate(item?.endTime);
+    if (end) {
+        return end < now;
+    }
+    const start = parseEventDate(item?.startTime);
+    return Boolean(start && start < now);
+}
+
+function parseEventDate(value) {
+    if (!value) {
+        return null;
+    }
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return null;
+    }
+    return date;
 }

@@ -74,8 +74,8 @@ class EventRegistrationServiceTest {
         event.setClub(club);
         when(eventRepository.findById(9L)).thenReturn(Optional.of(event));
 
-        when(eventRegistrationRepository.existsByEventIdAndUserIdAndStatus(9L, 22L, RegistrationStatus.REGISTERED))
-                .thenReturn(false);
+        when(eventRegistrationRepository.findByEventIdAndUserId(9L, 22L))
+                .thenReturn(Optional.empty());
         when(eventRegistrationRepository.countByEventIdAndStatus(9L, RegistrationStatus.REGISTERED))
                 .thenReturn(0L);
         when(eventRegistrationRepository.save(any(EventRegistration.class)))
@@ -115,8 +115,11 @@ class EventRegistrationServiceTest {
         event.setCapacity(2);
 
         when(eventRepository.findById(7L)).thenReturn(Optional.of(event));
-        when(eventRegistrationRepository.existsByEventIdAndUserIdAndStatus(7L, 11L, RegistrationStatus.REGISTERED))
-                .thenReturn(true);
+        EventRegistration existing = new EventRegistration();
+        existing.setId(2L);
+        existing.setStatus(RegistrationStatus.REGISTERED);
+        when(eventRegistrationRepository.findByEventIdAndUserId(7L, 11L))
+                .thenReturn(Optional.of(existing));
 
         assertThatThrownBy(() -> eventRegistrationService.registerForEvent(7L, authentication))
                 .isInstanceOf(ConflictException.class)
@@ -144,8 +147,8 @@ class EventRegistrationServiceTest {
         event.setCapacity(1);
 
         when(eventRepository.findById(12L)).thenReturn(Optional.of(event));
-        when(eventRegistrationRepository.existsByEventIdAndUserIdAndStatus(12L, 33L, RegistrationStatus.REGISTERED))
-                .thenReturn(false);
+        when(eventRegistrationRepository.findByEventIdAndUserId(12L, 33L))
+                .thenReturn(Optional.empty());
         when(eventRegistrationRepository.countByEventIdAndStatus(12L, RegistrationStatus.REGISTERED))
                 .thenReturn(1L);
 
@@ -154,6 +157,49 @@ class EventRegistrationServiceTest {
                 .hasMessageContaining("Capacity for this event is reached");
 
         verify(eventRegistrationRepository, never()).save(any(EventRegistration.class));
+    }
+
+    @Test
+    void registerForEventReactivatesCancelledRegistration() {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getName()).thenReturn("student@student.tus.com");
+
+        User user = new User();
+        user.setId(101L);
+        user.setEmail("student@student.tus.com");
+        when(userRepository.findByEmailIgnoreCaseOrUsernameIgnoreCase("student@student.tus.com", "student@student.tus.com"))
+                .thenReturn(Optional.of(user));
+
+        Club club = new Club();
+        club.setId(9L);
+        club.setActive(true);
+
+        Event event = new Event();
+        event.setId(33L);
+        event.setActive(true);
+        event.setCapacity(2);
+        event.setClub(club);
+        when(eventRepository.findById(33L)).thenReturn(Optional.of(event));
+
+        EventRegistration existing = new EventRegistration();
+        existing.setId(12L);
+        existing.setStatus(RegistrationStatus.CANCELLED);
+        existing.setCancelledAt(LocalDateTime.now().minusDays(1));
+
+        when(eventRegistrationRepository.findByEventIdAndUserId(33L, 101L))
+                .thenReturn(Optional.of(existing));
+        when(eventRegistrationRepository.countByEventIdAndStatus(33L, RegistrationStatus.REGISTERED))
+                .thenReturn(0L);
+        when(eventRegistrationRepository.save(existing)).thenReturn(existing);
+
+        LocalDateTime now = stubClock();
+
+        Event result = eventRegistrationService.registerForEvent(33L, authentication);
+
+        assertThat(result).isEqualTo(event);
+        assertThat(existing.getStatus()).isEqualTo(RegistrationStatus.REGISTERED);
+        assertThat(existing.getRegisteredAt()).isEqualTo(now);
+        assertThat(existing.getCancelledAt()).isNull();
     }
 
     @Test

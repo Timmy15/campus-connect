@@ -141,3 +141,15 @@ Feature: Event registration
     When method get
     Then status 200
     And match response[*].eventId !contains eventId
+
+    Given path '/api/student/events', eventId, 'register'
+    And header Authorization = studentAuthHeader
+    When method post
+    Then status 201
+    And match response.message == 'Registration successful.'
+
+    Given path '/api/student/registrations'
+    And header Authorization = studentAuthHeader
+    When method get
+    Then status 200
+    And match response[*].eventId contains eventId
