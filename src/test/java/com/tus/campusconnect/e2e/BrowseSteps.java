@@ -120,7 +120,7 @@ public class BrowseSteps {
     @Given("I am logged in as a student")
     public void iAmLoggedInAsAStudent() {
         LoginResult login = loginViaApi(users.getStudentEmail(), users.getStudentPassword());
-        ui.open(baseUrl + "/login.html");
+        ui.open(baseUrl + "/");
         setAuthStorage(login);
         driver.navigate().to(baseUrl + "/");
         ui.waitForVisible(By.id("nav-browse-clubs"));

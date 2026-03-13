@@ -4,24 +4,28 @@ import { renderManageClubs } from './features/manageClubs.js';
 import { renderBrowseClubs } from './features/browseClubs.js';
 import { renderBrowseEvents } from './features/browseEvents.js';
 import { renderMyRegistrations } from './features/myRegistrations.js';
+import { renderAuthView } from './login.js';
 
 let currentUser = null;
+let navigationBound = false;
 const clearAuthStorage = () => {
     localStorage.removeItem('cc.token');
     localStorage.removeItem('cc.role');
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    initApp();
     initTheme();
+    initApp();
 });
 
 function initApp() {
     const token = localStorage.getItem('cc.token');
     if (!token) {
-        globalThis.location.href = '/login.html';
+        showAuthView();
         return;
     }
+
+    showAppShell();
 
     $.ajax({
         url: '/api/user/me',
@@ -42,8 +46,33 @@ function initApp() {
         })
         .fail(() => {
             clearAuthStorage();
-            globalThis.location.href = '/login.html';
+            showAuthView();
         });
+}
+
+function showAuthView() {
+    currentUser = null;
+    hideAppShell();
+    renderAuthView({
+        onAuthSuccess: () => {
+            showAppShell();
+            initApp();
+        }
+    });
+}
+
+function hideAppShell() {
+    document.body.classList.add('auth-mode');
+    document.querySelector('.top-navbar')?.classList.add('d-none');
+    document.querySelector('.sidebar')?.classList.add('d-none');
+    document.querySelector('.main-content')?.classList.add('auth-content');
+}
+
+function showAppShell() {
+    document.body.classList.remove('auth-mode');
+    document.querySelector('.top-navbar')?.classList.remove('d-none');
+    document.querySelector('.sidebar')?.classList.remove('d-none');
+    document.querySelector('.main-content')?.classList.remove('auth-content');
 }
 
 function renderDashboardByRole(role, user) {
@@ -76,6 +105,9 @@ function configureSidebar(userRole) {
 }
 
 function setupNavigation() {
+    if (navigationBound) {
+        return;
+    }
     const navLinks = document.querySelectorAll('.sidebar .nav-link');
     const brandLink = document.getElementById('brandLink');
     const logoutBtn = document.getElementById('logoutBtn');
@@ -98,9 +130,10 @@ function setupNavigation() {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
             clearAuthStorage();
-            globalThis.location.href = '/login.html';
+            showAuthView();
         });
     }
+    navigationBound = true;
 }
 
 function navigateTo(navId) {

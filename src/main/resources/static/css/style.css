@@ -32,6 +32,23 @@ body {
         linear-gradient(135deg, var(--bg), var(--bg-wash));
 }
 
+body.auth-mode {
+    padding-top: 0;
+}
+
+body.auth-mode .main-content {
+    padding: 0;
+    min-height: 100vh;
+}
+
+.auth-shell {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
 .top-navbar {
     background: linear-gradient(130deg, var(--nav-start), var(--nav-end));
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
