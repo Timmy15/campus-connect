@@ -3,7 +3,7 @@ This application lets students browse clubs and events, register for events, and
 
 # User Guide
 ## Register an Account
-1. Open the app in your browser and switch to **Register**.
+1. Open the app in your browser (single-page app served from `/`) and switch to **Register**.
 2. Enter a **unique username**.
 3. Enter an email address with one of the accepted domains:
    - Students: `name@student.tus.com`
@@ -12,7 +12,7 @@ This application lets students browse clubs and events, register for events, and
 5. Submit the form. Your role is assigned automatically based on the email domain.
 
 ## Log In
-1. Open the **Login** form.
+1. Open the **Login** form in the app.
 2. Sign in using **either your email or your username** plus your password.
 3. On success, you are redirected to the dashboard for your role.
 
@@ -37,7 +37,7 @@ This application lets students browse clubs and events, register for events, and
 - Deleting a club removes all events under it and their registrations (via cascade).
 
 ## Log Out
-Use the **Logout** action in the navigation to clear your session and return to the login page.
+Use the **Logout** action in the navigation to clear your session and return to the in-app login view.
 
 # Getting Started
 ## Prerequisites
@@ -70,11 +70,17 @@ The Swagger UI documents all endpoints. Key ones are listed below.
 ### Public/Authenticated (Student + Admin)
 - `GET /api/clubs` (browse active clubs)
 - `GET /api/events` (browse active events)
+- `GET /api/user/me` (current user profile)
 
 ### Student Endpoints
 - `POST /api/student/events/{eventId}/register` (register for an event)
 - `GET /api/student/registrations` (list my registrations)
 - `DELETE /api/student/registrations/{registrationId}` (cancel my registration)
+
+### Auth
+- `POST /api/auth/login` (log in)
+- `POST /api/auth/register` (register)
+- `GET /api/auth/username-available?username=` (check username availability)
 
 ### Admin Club Management
 - `GET /api/admin/clubs` (list all clubs)
