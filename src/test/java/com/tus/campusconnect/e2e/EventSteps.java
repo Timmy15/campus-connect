@@ -171,23 +171,27 @@ public class EventSteps {
     }
 
     private void waitForEventAction(By successLocator, String expectedStatus) {
+        String initialStatus = readEventStatus();
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
         wait.until(d -> {
             if (!d.findElements(successLocator).isEmpty()) {
                 return true;
             }
-            String status = d.findElement(By.id("eventFormStatus")).getText();
-            return status != null && !status.trim().isEmpty();
+            String status = readEventStatus();
+            if (status.isEmpty()) {
+                return false;
+            }
+            if (initialStatus.isEmpty()) {
+                return true;
+            }
+            return !status.equals(initialStatus);
         });
 
         if (!driver.findElements(successLocator).isEmpty()) {
             return;
         }
 
-        String status = driver.findElement(By.id("eventFormStatus")).getText();
-        if (status == null) {
-            status = "";
-        }
+        String status = readEventStatus();
         if (!status.contains(expectedStatus)) {
             throw new AssertionError("Event action failed: " + status);
         }
@@ -202,5 +206,14 @@ public class EventSteps {
             String status = d.findElement(By.id("clubFormStatus")).getText();
             return status != null && status.contains(expectedStatus);
         });
+    }
+
+    private String readEventStatus() {
+        String status = driver.findElements(By.id("eventFormStatus"))
+                .stream()
+                .findFirst()
+                .map(org.openqa.selenium.WebElement::getText)
+                .orElse("");
+        return status == null ? "" : status.trim();
     }
 }

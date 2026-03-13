@@ -5,12 +5,17 @@ import com.tus.campusconnect.dto.event.EventCreateRequestDTO;
 import com.tus.campusconnect.dto.event.EventResponseDTO;
 import com.tus.campusconnect.dto.event.EventUpdateRequestDTO;
 import com.tus.campusconnect.model.Event;
+import com.tus.campusconnect.model.RegistrationStatus;
+import com.tus.campusconnect.model.User;
+import com.tus.campusconnect.repository.EventRegistrationRepository;
+import com.tus.campusconnect.repository.UserRepository;
 import com.tus.campusconnect.service.EventService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,14 +27,17 @@ import java.util.List;
 public class EventController {
 
     private final EventService eventService;
+    private final EventRegistrationRepository eventRegistrationRepository;
+    private final UserRepository userRepository;
 
     @GetMapping("/events")
     @Operation(summary = "List active events", description = "Return all active events for browsing.")
     @ApiResponse(responseCode = "200", description = "Active events returned.")
-    public List<EventResponseDTO> getActiveEvents() {
+    public List<EventResponseDTO> getActiveEvents(Authentication authentication) {
+        Long userId = resolveUserId(authentication);
         return eventService.getActiveEvents()
                 .stream()
-                .map(this::toDto)
+                .map(event -> toDto(event, userId))
                 .toList();
     }
 
@@ -40,7 +48,7 @@ public class EventController {
     public List<EventResponseDTO> getClubEvents(@PathVariable Long clubId) {
         return eventService.getEventsForClub(clubId)
                 .stream()
-                .map(this::toDto)
+                .map(event -> toDto(event, null))
                 .toList();
     }
 
@@ -83,8 +91,32 @@ public class EventController {
         return ResponseEntity.ok(new EventActionResponseDTO("Event updated successfully.", toDto(saved)));
     }
 
+    @DeleteMapping("/admin/events/{eventId}")
+    @Operation(summary = "Delete an event")
+    @ApiResponse(responseCode = "200", description = "Event deleted.")
+    @ApiResponse(responseCode = "404", description = "Event not found.")
+    public ResponseEntity<EventActionResponseDTO> deleteEvent(@PathVariable Long eventId) {
+        Event deleted = eventService.deleteEvent(eventId);
+        return ResponseEntity.ok(new EventActionResponseDTO("Event deleted successfully.", toDto(deleted)));
+    }
+
     private EventResponseDTO toDto(Event event) {
+        return toDto(event, null);
+    }
+
+    private EventResponseDTO toDto(Event event, Long userId) {
         String clubCategory = event.getClub() != null ? event.getClub().getCategory() : null;
+        long registeredCount = eventRegistrationRepository.countByEventIdAndStatus(
+                event.getId(),
+                RegistrationStatus.REGISTERED
+        );
+        Integer capacity = event.getCapacity();
+        Integer capacityRemaining = capacity == null ? null : (int) Math.max(capacity - registeredCount, 0);
+        boolean registered = userId != null && eventRegistrationRepository.existsByEventIdAndUserIdAndStatus(
+                event.getId(),
+                userId,
+                RegistrationStatus.REGISTERED
+        );
         return new EventResponseDTO(
                 event.getId(),
                 event.getClub() != null ? event.getClub().getId() : null,
@@ -95,9 +127,22 @@ public class EventController {
                 event.getLocation(),
                 event.getStartTime(),
                 event.getEndTime(),
-                event.getCapacity(),
-                event.isActive()
+                capacity,
+                event.isActive(),
+                registeredCount,
+                capacityRemaining,
+                registered
         );
     }
 
+    private Long resolveUserId(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            return null;
+        }
+
+        String identifier = authentication.getName();
+        User user = userRepository.findByEmailIgnoreCaseOrUsernameIgnoreCase(identifier, identifier)
+                .orElse(null);
+        return user != null ? user.getId() : null;
+    }
 }

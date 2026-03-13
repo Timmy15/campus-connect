@@ -4,6 +4,7 @@ import com.tus.campusconnect.exception.BadRequestException;
 import com.tus.campusconnect.exception.NotFoundException;
 import com.tus.campusconnect.model.Club;
 import com.tus.campusconnect.model.Event;
+import com.tus.campusconnect.repository.EventRegistrationRepository;
 import com.tus.campusconnect.repository.ClubRepository;
 import com.tus.campusconnect.repository.EventRepository;
 import org.junit.jupiter.api.Test;
@@ -22,6 +23,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -35,6 +37,9 @@ class EventServiceTest {
 
     @Mock
     private Clock clock;
+
+    @Mock
+    private EventRegistrationRepository eventRegistrationRepository;
 
     @InjectMocks
     private EventService eventService;
@@ -204,6 +209,7 @@ class EventServiceTest {
 
     @Test
     void getActiveEventsFiltersInactiveClubs() {
+        LocalDateTime baseTime = stubClock();
         Club activeClub = new Club();
         activeClub.setId(1L);
         activeClub.setName("Active Club");
@@ -218,14 +224,14 @@ class EventServiceTest {
         activeEvent.setId(1L);
         activeEvent.setTitle("Open Day");
         activeEvent.setActive(true);
-        activeEvent.setStartTime(LocalDateTime.now().plusDays(1));
+        activeEvent.setStartTime(baseTime.plusDays(1));
         activeEvent.setClub(activeClub);
 
         Event hiddenEvent = new Event();
         hiddenEvent.setId(2L);
         hiddenEvent.setTitle("Hidden");
         hiddenEvent.setActive(true);
-        hiddenEvent.setStartTime(LocalDateTime.now().plusDays(1));
+        hiddenEvent.setStartTime(baseTime.plusDays(1));
         hiddenEvent.setClub(inactiveClub);
 
         when(eventRepository.findAllByIsActiveTrueOrderByStartTimeAsc())
@@ -239,6 +245,7 @@ class EventServiceTest {
 
     @Test
     void getActiveEventsPreservesRepositoryOrdering() {
+        LocalDateTime baseTime = stubClock();
         Club club = new Club();
         club.setId(10L);
         club.setName("Ordered Club");
@@ -248,14 +255,14 @@ class EventServiceTest {
         early.setId(11L);
         early.setTitle("Early");
         early.setActive(true);
-        early.setStartTime(LocalDateTime.of(2026, 3, 9, 10, 0));
+        early.setStartTime(baseTime.plusHours(1));
         early.setClub(club);
 
         Event late = new Event();
         late.setId(12L);
         late.setTitle("Late");
         late.setActive(true);
-        late.setStartTime(LocalDateTime.of(2026, 3, 9, 14, 0));
+        late.setStartTime(baseTime.plusHours(3));
         late.setClub(club);
 
         when(eventRepository.findAllByIsActiveTrueOrderByStartTimeAsc())
@@ -273,6 +280,53 @@ class EventServiceTest {
         assertThatThrownBy(() -> eventService.getEventsForClub(77L))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Club not found");
+    }
+
+    @Test
+    void getActiveEventsFiltersPastEvents() {
+        LocalDateTime baseTime = stubClock();
+        Club club = new Club();
+        club.setId(20L);
+        club.setName("Time Club");
+        club.setActive(true);
+
+        Event pastEvent = new Event();
+        pastEvent.setId(21L);
+        pastEvent.setTitle("Past");
+        pastEvent.setActive(true);
+        pastEvent.setStartTime(baseTime.minusDays(1));
+        pastEvent.setEndTime(baseTime.minusHours(1));
+        pastEvent.setClub(club);
+
+        Event upcomingEvent = new Event();
+        upcomingEvent.setId(22L);
+        upcomingEvent.setTitle("Upcoming");
+        upcomingEvent.setActive(true);
+        upcomingEvent.setStartTime(baseTime.plusHours(2));
+        upcomingEvent.setEndTime(baseTime.plusHours(3));
+        upcomingEvent.setClub(club);
+
+        when(eventRepository.findAllByIsActiveTrueOrderByStartTimeAsc())
+                .thenReturn(List.of(pastEvent, upcomingEvent));
+
+        List<Event> result = eventService.getActiveEvents();
+
+        assertThat(result).containsExactly(upcomingEvent);
+    }
+
+    @Test
+    void deleteEventRemovesRegistrationsAndEvent() {
+        Event event = new Event();
+        event.setId(55L);
+        event.setTitle("Obsolete");
+
+        when(eventRepository.findById(55L)).thenReturn(Optional.of(event));
+
+        Event deleted = eventService.deleteEvent(55L);
+
+        assertThat(deleted).isEqualTo(event);
+        verify(eventRegistrationRepository).deleteByEventId(55L);
+        verify(eventRepository).delete(event);
     }
 
     private LocalDateTime stubClock() {

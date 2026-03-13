@@ -5,15 +5,21 @@ import com.tus.campusconnect.exception.ConflictException;
 import com.tus.campusconnect.exception.NotFoundException;
 import com.tus.campusconnect.exception.UnauthorizedException;
 import com.tus.campusconnect.model.Club;
+import com.tus.campusconnect.model.Event;
+import com.tus.campusconnect.model.EventRegistration;
+import com.tus.campusconnect.model.RegistrationStatus;
 import com.tus.campusconnect.model.User;
 import com.tus.campusconnect.repository.ClubRepository;
+import com.tus.campusconnect.repository.EventRegistrationRepository;
 import com.tus.campusconnect.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Service
@@ -22,6 +28,7 @@ public class ClubService {
 
     private final ClubRepository clubRepository;
     private final UserRepository userRepository;
+    private final EventRegistrationRepository eventRegistrationRepository;
     private final Clock clock;
 
     public List<Club> getActiveClubs() {
@@ -77,10 +84,12 @@ public class ClubService {
         return clubRepository.save(club);
     }
 
+    @Transactional
     public Club deactivateClub(Long id) {
         Club club = requireClub(id);
 
         club.setActive(false);
+        cancelUpcomingRegistrations(club.getId());
         return clubRepository.save(club);
     }
 
@@ -89,6 +98,13 @@ public class ClubService {
 
         club.setActive(true);
         return clubRepository.save(club);
+    }
+
+    @Transactional
+    public Club deleteClub(Long id) {
+        Club club = requireClub(id);
+        clubRepository.delete(club);
+        return club;
     }
 
     private User resolveAdmin(Authentication authentication) {
@@ -106,6 +122,43 @@ public class ClubService {
     private String toNullable(String value) {
         String trimmed = normalize(value);
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private void cancelUpcomingRegistrations(Long clubId) {
+        List<EventRegistration> registrations = eventRegistrationRepository
+                .findAllByEventClubIdAndStatus(clubId, RegistrationStatus.REGISTERED);
+        if (registrations.isEmpty()) {
+            return;
+        }
+
+        LocalDateTime now = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MINUTES);
+        List<EventRegistration> toCancel = registrations.stream()
+                .filter(registration -> isUpcomingOrOngoing(registration.getEvent(), now))
+                .map(registration -> {
+                    registration.setStatus(RegistrationStatus.CANCELLED);
+                    registration.setCancelledAt(now);
+                    return registration;
+                })
+                .toList();
+
+        if (!toCancel.isEmpty()) {
+            eventRegistrationRepository.saveAll(toCancel);
+        }
+    }
+
+    private boolean isUpcomingOrOngoing(Event event, LocalDateTime now) {
+        if (event == null) {
+            return false;
+        }
+        LocalDateTime endTime = event.getEndTime();
+        if (endTime != null) {
+            return !endTime.isBefore(now);
+        }
+        LocalDateTime startTime = event.getStartTime();
+        if (startTime != null) {
+            return !startTime.isBefore(now);
+        }
+        return false;
     }
 
     private Club requireClub(Long id) {

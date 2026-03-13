@@ -4,10 +4,12 @@ import com.tus.campusconnect.exception.BadRequestException;
 import com.tus.campusconnect.exception.NotFoundException;
 import com.tus.campusconnect.model.Club;
 import com.tus.campusconnect.model.Event;
+import com.tus.campusconnect.repository.EventRegistrationRepository;
 import com.tus.campusconnect.repository.ClubRepository;
 import com.tus.campusconnect.repository.EventRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -20,12 +22,15 @@ public class EventService {
 
     private final EventRepository eventRepository;
     private final ClubRepository clubRepository;
+    private final EventRegistrationRepository eventRegistrationRepository;
     private final Clock clock;
 
     public List<Event> getActiveEvents() {
+        LocalDateTime now = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MINUTES);
         return eventRepository.findAllByIsActiveTrueOrderByStartTimeAsc()
                 .stream()
                 .filter(event -> event.getClub() != null && event.getClub().isActive())
+                .filter(event -> isUpcomingOrOngoing(event, now))
                 .toList();
     }
 
@@ -83,6 +88,14 @@ public class EventService {
         return eventRepository.save(event);
     }
 
+    @Transactional
+    public Event deleteEvent(Long eventId) {
+        Event event = requireEvent(eventId);
+        eventRegistrationRepository.deleteByEventId(eventId);
+        eventRepository.delete(event);
+        return event;
+    }
+
     private void validateEventDetails(String title,
                                       String location,
                                       Integer capacity,
@@ -123,6 +136,21 @@ public class EventService {
     private String toNullable(String value) {
         String trimmed = normalize(value);
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private boolean isUpcomingOrOngoing(Event event, LocalDateTime now) {
+        if (event == null) {
+            return false;
+        }
+        LocalDateTime endTime = event.getEndTime();
+        if (endTime != null) {
+            return !endTime.isBefore(now);
+        }
+        LocalDateTime startTime = event.getStartTime();
+        if (startTime != null) {
+            return !startTime.isBefore(now);
+        }
+        return false;
     }
 
     private Club requireClub(Long id) {

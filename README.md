@@ -1,5 +1,5 @@
 # Read Me First
-This is an application that allows students to browse and register for events hosted by clubs and allows administrators to create and manage clubs and events
+This application lets students browse clubs and events, register for events, and lets administrators manage clubs, events, and registrations.
 
 # User Guide
 ## Register an Account
@@ -19,12 +19,19 @@ This is an application that allows students to browse and register for events ho
 ## Using the Dashboard
 - The navigation shows only the items your role can access.
 - Your username is shown on the dashboard so you can confirm the logged-in account.
-- Admins can create, update, deactivate, and reactivate clubs from **Manage Clubs**.
-- Admins can create and update events for a club from **Manage Clubs** (Event Management section).
+- Admins can create, update, deactivate, reactivate, and delete clubs from **Manage Clubs**.
+- Admins can create, update, and delete events for a club from **Manage Clubs** (Event Management section).
 - Events require a future start date and a capacity greater than zero.
 - Students can view active events in **Browse Events**.
 - Students can search clubs/events by name, filter by category, and sort events by date in the browse pages.
-- Deactivated clubs are hidden from the **Browse Clubs** list until reactivated.
+- **Browse Clubs** cards are clickable to show events for that club, including remaining capacity and registration status.
+- Students can register for events directly from the club event list, and admins see a message that admin accounts cannot register.
+- Deactivated clubs are hidden from **Browse Clubs** until reactivated.
+- Past events are hidden from browsing and club event lists.
+- Student registrations show a **COMPLETED** badge for events whose date has passed.
+- Deactivating a club automatically cancels upcoming/ongoing registrations for that club.
+- Deleting an event removes all registrations for that event.
+- Deleting a club removes all events under it and their registrations (via cascade).
 
 ## Log Out
 Use the **Logout** action in the navigation to clear your session and return to the login page.
@@ -61,4 +68,9 @@ The Swagger UI includes the club activation endpoint:
 It also documents event management endpoints, for example:
 - `POST /api/admin/clubs/{clubId}/events`
 - `PUT /api/admin/events/{eventId}`
+- `DELETE /api/admin/events/{eventId}`
 - `GET /api/events`
+
+Additional admin endpoints include:
+- `DELETE /api/admin/clubs/{id}` (deactivate)
+- `DELETE /api/admin/clubs/{id}/delete` (delete)

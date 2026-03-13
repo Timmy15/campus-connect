@@ -8,6 +8,9 @@ import com.tus.campusconnect.exception.BadRequestException;
 import com.tus.campusconnect.exception.NotFoundException;
 import com.tus.campusconnect.model.Club;
 import com.tus.campusconnect.model.Event;
+import com.tus.campusconnect.model.RegistrationStatus;
+import com.tus.campusconnect.repository.EventRegistrationRepository;
+import com.tus.campusconnect.repository.UserRepository;
 import com.tus.campusconnect.service.EventService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,6 +34,12 @@ class EventControllerTest {
     @Mock
     private EventService eventService;
 
+    @Mock
+    private EventRegistrationRepository eventRegistrationRepository;
+
+    @Mock
+    private UserRepository userRepository;
+
     @InjectMocks
     private EventController eventController;
 
@@ -38,8 +47,9 @@ class EventControllerTest {
     void getActiveEventsReturnsList() {
         Event event = event(1L, "Demo Day", "Robotics");
         when(eventService.getActiveEvents()).thenReturn(List.of(event));
+        when(eventRegistrationRepository.countByEventIdAndStatus(1L, RegistrationStatus.REGISTERED)).thenReturn(0L);
 
-        List<EventResponseDTO> response = eventController.getActiveEvents();
+        List<EventResponseDTO> response = eventController.getActiveEvents(null);
 
         assertThat(response).hasSize(1);
         assertThat(response.get(0).getTitle()).isEqualTo("Demo Day");
@@ -51,6 +61,7 @@ class EventControllerTest {
     void getClubEventsReturnsList() {
         Event event = event(2L, "Meetup", "Chess");
         when(eventService.getEventsForClub(5L)).thenReturn(List.of(event));
+        when(eventRegistrationRepository.countByEventIdAndStatus(2L, RegistrationStatus.REGISTERED)).thenReturn(0L);
 
         List<EventResponseDTO> response = eventController.getClubEvents(5L);
 
@@ -72,6 +83,7 @@ class EventControllerTest {
         Event saved = event(10L, "Hackathon", "Tech Club");
         when(eventService.createEvent(any(Long.class), any(), any(), any(), any(), any(), any()))
                 .thenReturn(saved);
+        when(eventRegistrationRepository.countByEventIdAndStatus(10L, RegistrationStatus.REGISTERED)).thenReturn(0L);
 
         ResponseEntity<EventActionResponseDTO> response = eventController.createEvent(7L, request);
 
@@ -106,6 +118,7 @@ class EventControllerTest {
         Event saved = event(12L, "Updated", "Drama");
         when(eventService.updateEvent(any(Long.class), any(), any(), any(), any(), any(), any()))
                 .thenReturn(saved);
+        when(eventRegistrationRepository.countByEventIdAndStatus(12L, RegistrationStatus.REGISTERED)).thenReturn(0L);
 
         ResponseEntity<EventActionResponseDTO> response = eventController.updateEvent(12L, request);
 
