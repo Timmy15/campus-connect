@@ -92,3 +92,6 @@ The Swagger UI documents all endpoints. Key ones are listed below.
 ### Admin Registration Management
 - `GET /api/admin/events/{eventId}/registrations` (list registrations for an event)
 - `DELETE /api/admin/events/{eventId}/registrations/{registrationId}` (unregister a student)
+
+### Admin Participation Reporting
+- `GET /api/admin/participation` (registrations per event and top clubs by registrations)

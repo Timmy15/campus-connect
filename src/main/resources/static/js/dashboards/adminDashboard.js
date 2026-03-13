@@ -3,6 +3,8 @@ import { escapeHtml } from '../utils/dom.js';
 
 let registrationsTable = null;
 let detailTable = null;
+let eventChart = null;
+let clubChart = null;
 
 const state = {
     events: [],
@@ -10,7 +12,8 @@ const state = {
     selectedEventId: null,
     selectedEventTitle: '',
     eventsRequestId: 0,
-    detailsRequestId: 0
+    detailsRequestId: 0,
+    participationRequestId: 0
 };
 
 export function renderAdminDashboard(user) {
@@ -23,8 +26,32 @@ export function renderAdminDashboard(user) {
             <div class="row mb-3">
                 <div class="col">
                     <h2 class="fw-bold">Admin Dashboard</h2>
-                    <p class="text-muted mb-0">Review event registrations.</p>
+                    <p class="text-muted mb-0">Review event registrations and participation trends.</p>
                     <p class="small text-muted mb-0">Signed in as ${escapeHtml(displayName)}</p>
+                </div>
+            </div>
+
+            <div class="card p-4 mb-4">
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
+                    <h5 class="fw-semibold mb-0">Participation dashboard</h5>
+                    <button class="btn btn-sm btn-primary" id="adminLoadParticipation">View dashboard</button>
+                </div>
+                <div class="small text-muted" id="adminParticipationStatus">Click to load participation charts.</div>
+                <div id="adminParticipationEmpty" class="text-muted d-none mt-3">No data available.</div>
+
+                <div id="adminParticipationCharts" class="row g-3 mt-3 d-none">
+                    <div class="col-lg-6">
+                        <div class="card bg-body-tertiary border-0 p-3 h-100">
+                            <h6 class="fw-semibold mb-2">Registrations per event</h6>
+                            <canvas id="adminEventRegistrationsChart" height="220"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card bg-body-tertiary border-0 p-3 h-100">
+                            <h6 class="fw-semibold mb-2">Top clubs by total registrations</h6>
+                            <canvas id="adminTopClubsChart" height="220"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -85,6 +112,7 @@ export function renderAdminDashboard(user) {
     `;
 
     bindDashboardActions();
+    bindParticipationActions();
 }
 
 function resetDashboardState() {
@@ -92,12 +120,17 @@ function resetDashboardState() {
     detailTable?.destroy?.();
     registrationsTable = null;
     detailTable = null;
+    eventChart?.destroy?.();
+    clubChart?.destroy?.();
+    eventChart = null;
+    clubChart = null;
     state.events = [];
     state.registrations = [];
     state.selectedEventId = null;
     state.selectedEventTitle = '';
     state.eventsRequestId = 0;
     state.detailsRequestId = 0;
+    state.participationRequestId = 0;
 }
 
 function bindDashboardActions() {
@@ -111,6 +144,170 @@ function bindDashboardActions() {
         refreshButton.addEventListener('click', () => {
             if (state.selectedEventId) {
                 loadEventRegistrationsForEvent(state.selectedEventId, state.selectedEventTitle);
+            }
+        });
+    }
+}
+
+function bindParticipationActions() {
+    const loadButton = document.getElementById('adminLoadParticipation');
+    if (loadButton) {
+        loadButton.addEventListener('click', () => loadParticipationStats());
+    }
+}
+
+function getParticipationUi() {
+    return {
+        statusEl: document.getElementById('adminParticipationStatus'),
+        emptyEl: document.getElementById('adminParticipationEmpty'),
+        chartsWrapper: document.getElementById('adminParticipationCharts'),
+        loadButton: document.getElementById('adminLoadParticipation')
+    };
+}
+
+function updateParticipationUi(ui, { status, showEmpty, showCharts, disableButton } = {}) {
+    if (!ui) {
+        return;
+    }
+    if (typeof disableButton === 'boolean') {
+        if (ui.loadButton) {
+            ui.loadButton.disabled = disableButton;
+        }
+    }
+    if (status !== undefined && ui.statusEl) {
+        ui.statusEl.textContent = status;
+    }
+    if (typeof showEmpty === 'boolean') {
+        ui.emptyEl?.classList.toggle('d-none', !showEmpty);
+    }
+    if (typeof showCharts === 'boolean') {
+        ui.chartsWrapper?.classList.toggle('d-none', !showCharts);
+    }
+}
+
+async function loadParticipationStats() {
+    const requestId = ++state.participationRequestId;
+    const ui = getParticipationUi();
+    updateParticipationUi(ui, {
+        status: 'Loading participation statistics...',
+        showEmpty: false,
+        showCharts: false,
+        disableButton: true
+    });
+
+    try {
+        const response = await apiRequest('/api/admin/participation');
+        const data = await safeJson(response);
+        if (isStaleParticipationRequest(requestId)) {
+            return;
+        }
+        if (!response.ok) {
+            updateParticipationUi(ui, {
+                status: data?.message || 'Unable to load participation statistics.'
+            });
+            return;
+        }
+
+        const eventStats = Array.isArray(data?.registrationsPerEvent) ? data.registrationsPerEvent : [];
+        const clubStats = Array.isArray(data?.topClubs) ? data.topClubs : [];
+
+        if (!eventStats.length && !clubStats.length) {
+            updateParticipationUi(ui, {
+                status: 'No data available.',
+                showEmpty: true,
+                showCharts: false
+            });
+            return;
+        }
+
+        renderParticipationCharts(eventStats, clubStats);
+        updateParticipationUi(ui, {
+            status: 'Participation dashboard loaded.',
+            showEmpty: false,
+            showCharts: true
+        });
+    } catch (error) {
+        console.warn('Unable to load participation statistics.', error);
+        updateParticipationUi(ui, {
+            status: 'Unable to load participation statistics.'
+        });
+    } finally {
+        updateParticipationUi(ui, { disableButton: false });
+    }
+}
+
+function renderParticipationCharts(eventStats, clubStats) {
+    const chartLib = globalThis.Chart;
+    if (!chartLib) {
+        updateParticipationUi(getParticipationUi(), {
+            status: 'Chart library not available.',
+            showEmpty: false,
+            showCharts: false
+        });
+        return;
+    }
+
+    const eventLabels = eventStats.map(stat => `${stat.eventTitle} (${stat.clubName})`);
+    const eventCounts = eventStats.map(stat => stat.registrationCount);
+    const clubLabels = clubStats.map(stat => stat.clubName);
+    const clubCounts = clubStats.map(stat => stat.registrationCount);
+
+    const eventCanvas = document.getElementById('adminEventRegistrationsChart');
+    const clubCanvas = document.getElementById('adminTopClubsChart');
+
+    eventChart?.destroy?.();
+    clubChart?.destroy?.();
+
+    if (eventCanvas) {
+        eventChart = new chartLib(eventCanvas, {
+            type: 'bar',
+            data: {
+                labels: eventLabels,
+                datasets: [{
+                    label: 'Registrations',
+                    data: eventCounts,
+                    backgroundColor: '#3b82f6'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { precision: 0 }
+                    }
+                }
+            }
+        });
+    }
+
+    if (clubCanvas) {
+        clubChart = new chartLib(clubCanvas, {
+            type: 'bar',
+            data: {
+                labels: clubLabels,
+                datasets: [{
+                    label: 'Registrations',
+                    data: clubCounts,
+                    backgroundColor: '#22c55e'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { precision: 0 }
+                    }
+                }
             }
         });
     }
@@ -622,4 +819,8 @@ function isStaleEventsRequest(requestId) {
 
 function isStaleDetailsRequest(requestId) {
     return requestId !== state.detailsRequestId;
+}
+
+function isStaleParticipationRequest(requestId) {
+    return requestId !== state.participationRequestId;
 }
