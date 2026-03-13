@@ -14,5 +14,6 @@ public interface EventRegistrationRepository extends JpaRepository<EventRegistra
     List<EventRegistration> findAllByEventIdAndStatusOrderByRegisteredAtDesc(Long eventId, RegistrationStatus status);
     List<EventRegistration> findAllByEventClubIdAndStatus(Long clubId, RegistrationStatus status);
     void deleteByEventId(Long eventId);
+    Optional<EventRegistration> findByIdAndUserId(Long id, Long userId);
     Optional<EventRegistration> findByIdAndEventId(Long id, Long eventId);
 }

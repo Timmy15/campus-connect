@@ -97,6 +97,19 @@ public class EventRegistrationService {
         return registration;
     }
 
+    @Transactional
+    public EventRegistration cancelRegistration(Long registrationId, Authentication authentication) {
+        User user = requireUser(authentication);
+        EventRegistration registration = eventRegistrationRepository.findByIdAndUserId(registrationId, user.getId())
+                .orElseThrow(() -> new NotFoundException("Registration not found."));
+        if (registration.getStatus() == RegistrationStatus.CANCELLED) {
+            throw new ConflictException("Registration already cancelled.");
+        }
+        registration.setStatus(RegistrationStatus.CANCELLED);
+        registration.setCancelledAt(LocalDateTime.now(clock));
+        return registration;
+    }
+
     private User requireUser(Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
             throw new UnauthorizedException("User not found.");

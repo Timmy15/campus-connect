@@ -64,11 +64,13 @@ async function loadRegistrations() {
                         <th>Date & Time</th>
                         <th>Location</th>
                         <th>Status</th>
+                        <th class="text-end">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${registrations.map(item => {
                         const badge = getRegistrationBadge(item);
+                        const action = renderCancelAction(item);
                         return `
                         <tr>
                             <td class="fw-semibold">${escapeHtml(item.eventTitle || 'Event')}</td>
@@ -80,12 +82,16 @@ async function loadRegistrations() {
                                     ${escapeHtml(badge.label)}
                                 </span>
                             </td>
+                            <td class="text-end">
+                                ${action}
+                            </td>
                         </tr>
                     `;
                     }).join('')}
                 </tbody>
             </table>
         `;
+        bindCancelActions();
     } catch (error) {
         console.warn('Unable to load registrations.', error);
         countEl.textContent = 'Unable to load registrations.';
@@ -108,6 +114,79 @@ function getRegistrationBadge(item) {
         return { label: 'COMPLETED', className: 'bg-secondary-subtle text-secondary' };
     }
     return { label: item.status || 'REGISTERED', className: 'bg-success-subtle text-success' };
+}
+
+function renderCancelAction(item) {
+    if (isEventCompleted(item)) {
+        return '<span class="text-muted small">Completed</span>';
+    }
+    const registrationId = item.registrationId;
+    if (!registrationId) {
+        return '';
+    }
+    return `
+        <button class="btn btn-sm btn-outline-danger" data-action="cancel-registration" data-id="${registrationId}">
+            Cancel
+        </button>
+    `;
+}
+
+function bindCancelActions() {
+    const tableWrap = document.getElementById('registrationTableWrap');
+    if (!tableWrap || tableWrap.dataset.cancelBound === 'true') {
+        return;
+    }
+    tableWrap.dataset.cancelBound = 'true';
+
+    tableWrap.addEventListener('click', async event => {
+        const button = event.target.closest('button[data-action="cancel-registration"]');
+        if (!button) {
+            return;
+        }
+        const registrationId = button.dataset.id;
+        if (!registrationId) {
+            return;
+        }
+        const confirmed = globalThis.confirm('Are you sure you want to cancel this registration?');
+        if (!confirmed) {
+            return;
+        }
+        button.disabled = true;
+        await cancelRegistration(registrationId);
+    });
+}
+
+async function cancelRegistration(registrationId) {
+    const statusEl = document.getElementById('registrationStatus');
+    if (statusEl) {
+        statusEl.textContent = 'Cancelling registration...';
+        statusEl.classList.remove('text-success', 'text-danger');
+    }
+
+    try {
+        const response = await apiRequest(`/api/student/registrations/${registrationId}`, {
+            method: 'DELETE'
+        });
+        const data = await safeJson(response);
+        if (!response.ok) {
+            if (statusEl) {
+                statusEl.textContent = data?.message || 'Unable to cancel registration.';
+                statusEl.classList.add('text-danger');
+            }
+            return;
+        }
+        if (statusEl) {
+            statusEl.textContent = data?.message || 'Registration cancelled successfully.';
+            statusEl.classList.add('text-success');
+        }
+        await loadRegistrations();
+    } catch (error) {
+        console.warn('Unable to cancel registration.', error);
+        if (statusEl) {
+            statusEl.textContent = 'Unable to cancel registration.';
+            statusEl.classList.add('text-danger');
+        }
+    }
 }
 
 function isEventCompleted(item) {

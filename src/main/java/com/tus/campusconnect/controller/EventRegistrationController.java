@@ -3,6 +3,7 @@ package com.tus.campusconnect.controller;
 import com.tus.campusconnect.dto.event.EventRegistrationItemDTO;
 import com.tus.campusconnect.dto.event.EventRegistrationResponseDTO;
 import com.tus.campusconnect.dto.event.EventResponseDTO;
+import com.tus.campusconnect.dto.common.MessageResponseDTO;
 import com.tus.campusconnect.model.Event;
 import com.tus.campusconnect.model.EventRegistration;
 import com.tus.campusconnect.model.RegistrationStatus;
@@ -49,6 +50,17 @@ public class EventRegistrationController {
                 .stream()
                 .map(this::toRegistrationDto)
                 .toList();
+    }
+
+    @DeleteMapping("/registrations/{registrationId}")
+    @Operation(summary = "Cancel my registration", description = "Cancel the current user's event registration.")
+    @ApiResponse(responseCode = "200", description = "Registration cancelled.")
+    @ApiResponse(responseCode = "404", description = "Registration not found.")
+    @ApiResponse(responseCode = "409", description = "Registration already cancelled.")
+    public ResponseEntity<MessageResponseDTO> cancelMyRegistration(@PathVariable Long registrationId,
+                                                                   Authentication authentication) {
+        eventRegistrationService.cancelRegistration(registrationId, authentication);
+        return ResponseEntity.ok(new MessageResponseDTO("Registration cancelled successfully."));
     }
 
     private EventResponseDTO toDto(Event event, boolean registered) {
