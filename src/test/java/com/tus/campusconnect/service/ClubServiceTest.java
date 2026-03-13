@@ -27,7 +27,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
@@ -196,7 +195,7 @@ class ClubServiceTest {
 
         when(clubRepository.findById(7L)).thenReturn(Optional.of(club));
         when(clubRepository.save(club)).thenReturn(club);
-        when(eventRegistrationRepository.findAllByEventClubIdAndStatus(eq(7L), eq(RegistrationStatus.REGISTERED)))
+        when(eventRegistrationRepository.findAllByEventClubIdAndStatus(7L, RegistrationStatus.REGISTERED))
                 .thenReturn(List.of());
 
         Club deactivated = clubService.deactivateClub(7L);
@@ -295,7 +294,7 @@ class ClubServiceTest {
 
         when(clubRepository.findById(12L)).thenReturn(Optional.of(club));
         when(clubRepository.save(club)).thenReturn(club);
-        when(eventRegistrationRepository.findAllByEventClubIdAndStatus(eq(12L), eq(RegistrationStatus.REGISTERED)))
+        when(eventRegistrationRepository.findAllByEventClubIdAndStatus(12L, RegistrationStatus.REGISTERED))
                 .thenReturn(List.of(pastRegistration, upcomingRegistration));
         when(eventRegistrationRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
 

@@ -21,7 +21,6 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -135,11 +134,12 @@ public class ClubService {
         LocalDateTime now = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MINUTES);
         List<EventRegistration> toCancel = registrations.stream()
                 .filter(registration -> isUpcomingOrOngoing(registration.getEvent(), now))
-                .peek(registration -> {
+                .map(registration -> {
                     registration.setStatus(RegistrationStatus.CANCELLED);
                     registration.setCancelledAt(now);
+                    return registration;
                 })
-                .collect(Collectors.toList());
+                .toList();
 
         if (!toCancel.isEmpty()) {
             eventRegistrationRepository.saveAll(toCancel);
