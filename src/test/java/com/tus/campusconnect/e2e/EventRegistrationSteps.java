@@ -10,6 +10,7 @@ import com.tus.campusconnect.repository.EventRegistrationRepository;
 import com.tus.campusconnect.repository.UserRepository;
 import com.tus.campusconnect.testsupport.TestUsers;
 import io.cucumber.java.Before;
+import io.cucumber.java.Scenario;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -38,6 +39,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class EventRegistrationSteps {
 
     private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+    private static final Object DATA_LOCK = new Object();
+    private static boolean seedReady = false;
+    private static EventContext openEvent;
+    private static EventContext registeredEvent;
+    private static EventContext fullEvent;
+    private static String cachedAdminToken;
+    private static String cachedStudentToken;
+    private static long cachedStudentId;
 
     @LocalServerPort
     private int port;
@@ -54,6 +63,7 @@ public class EventRegistrationSteps {
     private WebDriver driver;
     private UIHelper ui;
     private String baseUrl;
+    private String scenarioName;
 
     private long eventId;
     private String eventTitle;
@@ -64,27 +74,26 @@ public class EventRegistrationSteps {
     private long studentId;
 
     @Before
-    public void setUp() {
+    public void setUp(Scenario scenario) {
         driver = SharedWebDriver.getDriver();
         ui = UIHelper.getInstance(driver, Duration.ofSeconds(12));
         baseUrl = "http://localhost:" + port;
+        scenarioName = scenario != null ? scenario.getName() : "";
+        ensureSeedData();
+        adminToken = cachedAdminToken;
+        studentToken = cachedStudentToken;
+        studentId = cachedStudentId;
     }
 
     @Given("I am on the event registration page for an event")
     public void iAmOnTheEventRegistrationPageForAnEvent() {
-        LoginResult admin = loginViaApi(users.getAdminEmail(), users.getAdminPassword());
-        LoginResult student = loginViaApi(users.getStudentEmail(), users.getStudentPassword());
-        adminToken = admin.token;
-        studentToken = student.token;
-        studentId = lookupUserId(users.getStudentEmail());
-        setAuthStorage(student);
-
-        String clubName = "RegClub-" + UUID.randomUUID().toString().substring(0, 8);
-        long clubId = createClub(adminToken, clubName);
-
-        eventTitle = "RegEvent-" + UUID.randomUUID().toString().substring(0, 8);
-        eventId = createEvent(adminToken, clubId, eventTitle, eventCapacity);
-
+        EventContext context = selectEventForScenario();
+        eventTitle = context.title;
+        eventId = context.id;
+        eventCapacity = context.capacity;
+        if (studentToken != null) {
+            setAuthStorage(new LoginResult(studentToken, "ROLE_STUDENT"));
+        }
         ui.click(By.id("nav-browse-events"));
         waitForBrowseCount("eventBrowseCount");
         ui.waitForVisible(eventTitleLocator(eventTitle));
@@ -98,20 +107,27 @@ public class EventRegistrationSteps {
 
     @Given("I'm already registered for the event")
     public void imAlreadyRegisteredForTheEvent() {
-        int status = registerEvent(studentToken, eventId);
-        assertThat(status).isEqualTo(201);
+        boolean alreadyRegistered = eventRegistrationRepository
+                .existsByEventIdAndUserIdAndStatus(eventId, studentId, RegistrationStatus.REGISTERED);
+        if (!alreadyRegistered) {
+            int status = registerEvent(studentToken, eventId);
+            assertThat(status).isEqualTo(201);
+            refreshEventBrowse();
+        }
         assertThat(eventRegistrationRepository.existsByEventIdAndUserIdAndStatus(eventId, studentId, RegistrationStatus.REGISTERED))
                 .isTrue();
-        refreshEventBrowse();
     }
 
     @Given("the capacity for the event is reached")
     public void theCapacityForTheEventIsReached() {
-        int status = registerEvent(adminToken, eventId);
-        assertThat(status).isEqualTo(201);
         long count = eventRegistrationRepository.countByEventIdAndStatus(eventId, RegistrationStatus.REGISTERED);
-        assertThat(count).isGreaterThanOrEqualTo(eventCapacity);
-        refreshEventBrowse();
+        if (count < eventCapacity) {
+            int status = registerEvent(adminToken, eventId);
+            assertThat(status).isEqualTo(201);
+            refreshEventBrowse();
+        }
+        long updatedCount = eventRegistrationRepository.countByEventIdAndStatus(eventId, RegistrationStatus.REGISTERED);
+        assertThat(updatedCount).isGreaterThanOrEqualTo(eventCapacity);
     }
 
     @When("I click register")
@@ -373,5 +389,74 @@ public class EventRegistrationSteps {
             this.token = token;
             this.role = role;
         }
+    }
+
+    private static final class EventContext {
+        private final long id;
+        private final String title;
+        private final int capacity;
+
+        private EventContext(long id, String title, int capacity) {
+            this.id = id;
+            this.title = title;
+            this.capacity = capacity;
+        }
+    }
+
+    private EventContext selectEventForScenario() {
+        String name = scenarioName == null ? "" : scenarioName.toLowerCase();
+        if (name.contains("already registered")) {
+            return registeredEvent;
+        }
+        if (name.contains("capacity reached")) {
+            return fullEvent;
+        }
+        return openEvent;
+    }
+
+    private void ensureSeedData() {
+        if (seedReady) {
+            return;
+        }
+        synchronized (DATA_LOCK) {
+            if (seedReady) {
+                return;
+            }
+
+            LoginResult admin = loginViaApi(users.getAdminEmail(), users.getAdminPassword());
+            LoginResult student = loginViaApi(users.getStudentEmail(), users.getStudentPassword());
+            cachedAdminToken = admin.token;
+            cachedStudentToken = student.token;
+            cachedStudentId = lookupUserId(users.getStudentEmail());
+
+            String clubName = "RegClub-" + UUID.randomUUID().toString().substring(0, 8);
+            long clubId = createClub(cachedAdminToken, clubName);
+
+            openEvent = createEventContext(clubId, "RegEvent-Open");
+            registeredEvent = createEventContext(clubId, "RegEvent-Registered");
+            fullEvent = createEventContext(clubId, "RegEvent-Full", 1);
+
+            int registeredStatus = registerEvent(cachedStudentToken, registeredEvent.id);
+            if (registeredStatus != 201) {
+                throw new IllegalStateException("Failed to seed registered event: " + registeredStatus);
+            }
+
+            int fullStatus = registerEvent(cachedAdminToken, fullEvent.id);
+            if (fullStatus != 201) {
+                throw new IllegalStateException("Failed to seed full event: " + fullStatus);
+            }
+
+            seedReady = true;
+        }
+    }
+
+    private EventContext createEventContext(long clubId, String baseTitle) {
+        return createEventContext(clubId, baseTitle, 2);
+    }
+
+    private EventContext createEventContext(long clubId, String baseTitle, int capacity) {
+        String title = baseTitle + "-" + UUID.randomUUID().toString().substring(0, 8);
+        long id = createEvent(cachedAdminToken, clubId, title, capacity);
+        return new EventContext(id, title, capacity);
     }
 }
