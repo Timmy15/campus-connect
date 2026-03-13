@@ -552,7 +552,7 @@ function applyClubFilterToRegistrationsTable(clubName) {
 }
 
 function escapeRegex(value) {
-    return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return String(value).replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 }
 
 function scrollCardIntoView(cardId) {
@@ -638,7 +638,7 @@ function toRgb(color) {
     }
     const value = color.trim();
     if (value.startsWith('rgb')) {
-        const parts = value.replace(/rgba?\(|\)/g, '').split(',').map(part => part.trim());
+        const parts = value.replaceAll(/rgba?\(|\)/g, '').split(',').map(part => part.trim());
         if (parts.length >= 3) {
             return {
                 r: Number(parts[0]),
@@ -651,15 +651,15 @@ function toRgb(color) {
     if (value.startsWith('#')) {
         const hex = value.slice(1);
         if (hex.length === 3) {
-            const r = parseInt(hex[0] + hex[0], 16);
-            const g = parseInt(hex[1] + hex[1], 16);
-            const b = parseInt(hex[2] + hex[2], 16);
+            const r = Number.parseInt(hex[0] + hex[0], 16);
+            const g = Number.parseInt(hex[1] + hex[1], 16);
+            const b = Number.parseInt(hex[2] + hex[2], 16);
             return { r, g, b };
         }
         if (hex.length === 6) {
-            const r = parseInt(hex.slice(0, 2), 16);
-            const g = parseInt(hex.slice(2, 4), 16);
-            const b = parseInt(hex.slice(4, 6), 16);
+            const r = Number.parseInt(hex.slice(0, 2), 16);
+            const g = Number.parseInt(hex.slice(2, 4), 16);
+            const b = Number.parseInt(hex.slice(4, 6), 16);
             return { r, g, b };
         }
     }
