@@ -114,6 +114,38 @@ body {
     background: linear-gradient(135deg, #1d6d5b, var(--accent));
 }
 
+#adminParticipationCharts {
+    margin-top: 1.5rem;
+    overflow-x: hidden;
+}
+
+.admin-chart-card {
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.96), rgba(245, 241, 234, 0.9));
+    border: 1px solid var(--stroke);
+    border-radius: 16px;
+    padding: 18px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow: hidden;
+}
+
+.admin-chart-canvas {
+    width: 100%;
+    min-height: 260px;
+}
+
+.admin-chart-canvas canvas {
+    width: 100% !important;
+    max-width: 100%;
+}
+
+[data-bs-theme="dark"] .admin-chart-card {
+    background: linear-gradient(160deg, rgba(24, 33, 59, 0.96), rgba(18, 29, 51, 0.92));
+    border: 1px solid var(--stroke);
+}
+
 #top10FailureTable tbody tr,
 #cellFailuresTable tbody tr {
     cursor: pointer;

@@ -31,54 +31,78 @@ export function renderAdminDashboard(user) {
                 </div>
             </div>
 
-            <div class="card p-4 mb-4">
+            <div class="card p-4 mb-4 admin-participation-card" id="adminParticipationCard">
                 <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
                     <h5 class="fw-semibold mb-0">Participation dashboard</h5>
-                    <button class="btn btn-sm btn-primary" id="adminLoadParticipation">View dashboard</button>
-                </div>
-                <div class="small text-muted" id="adminParticipationStatus">Click to load participation charts.</div>
-                <div id="adminParticipationEmpty" class="text-muted d-none mt-3">No data available.</div>
-
-                <div id="adminParticipationCharts" class="row g-3 mt-3 d-none">
-                    <div class="col-lg-6">
-                        <div class="card bg-body-tertiary border-0 p-3 h-100">
-                            <h6 class="fw-semibold mb-2">Registrations per event</h6>
-                            <canvas id="adminEventRegistrationsChart" height="220"></canvas>
-                        </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-sm btn-primary" id="adminLoadParticipation">View dashboard</button>
+                        <button class="btn btn-sm btn-outline-secondary" data-action="toggle-card" data-target="adminParticipationBody" aria-controls="adminParticipationBody" aria-expanded="true" title="Collapse">
+                            <i class="bi bi-chevron-up"></i>
+                        </button>
                     </div>
-                    <div class="col-lg-6">
-                        <div class="card bg-body-tertiary border-0 p-3 h-100">
-                            <h6 class="fw-semibold mb-2">Top clubs by total registrations</h6>
-                            <canvas id="adminTopClubsChart" height="220"></canvas>
+                </div>
+                <div id="adminParticipationBody">
+                    <div class="small text-muted" id="adminParticipationStatus">Click to load participation charts.</div>
+                    <div id="adminParticipationEmpty" class="text-muted d-none mt-3">No data available.</div>
+
+                    <div id="adminParticipationCharts" class="row g-3 mt-3 d-none">
+                        <div class="col-lg-6">
+                            <div class="admin-chart-card h-100">
+                                <div class="d-flex flex-column gap-1">
+                                    <h6 class="fw-semibold mb-0">Registrations per event</h6>
+                                    <span class="text-muted small">Ranked by registrations. Hover for event + club names.</span>
+                                </div>
+                                <div class="admin-chart-canvas">
+                                    <canvas id="adminEventRegistrationsChart" aria-label="Registrations per event chart" role="img"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="admin-chart-card h-100">
+                                <div class="d-flex flex-column gap-1">
+                                    <h6 class="fw-semibold mb-0">Top clubs by total registrations</h6>
+                                    <span class="text-muted small">Ranked by registrations. Hover for club names.</span>
+                                </div>
+                                <div class="admin-chart-canvas">
+                                    <canvas id="adminTopClubsChart" aria-label="Top clubs by total registrations chart" role="img"></canvas>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="card p-4">
+            <div class="card p-4" id="adminRegistrationsCard">
                 <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
                     <h5 class="fw-semibold mb-0">Event registrations</h5>
-                    <button class="btn btn-sm btn-primary" id="adminLoadRegistrations">Load registrations</button>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-sm btn-primary" id="adminLoadRegistrations">Load registrations</button>
+                        <button class="btn btn-sm btn-outline-secondary" data-action="toggle-card" data-target="adminRegistrationsBody" aria-controls="adminRegistrationsBody" aria-expanded="true" title="Collapse">
+                            <i class="bi bi-chevron-up"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="small text-muted" id="adminRegistrationsStatus">Click to load event registration data.</div>
-                <div id="adminRegistrationsEmpty" class="text-muted d-none mt-3">No data available.</div>
+                <div id="adminRegistrationsBody">
+                    <div class="small text-muted" id="adminRegistrationsStatus">Click to load event registration data.</div>
+                    <div id="adminRegistrationsEmpty" class="text-muted d-none mt-3">No data available.</div>
 
-                <div id="adminRegistrationsTableWrapper" class="mt-3 d-none">
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle w-100" id="adminRegistrationsTable">
-                            <thead>
-                                <tr>
-                                    <th>Event</th>
-                                    <th>Club</th>
-                                    <th>Start time</th>
-                                    <th>Capacity</th>
-                                    <th>Registered</th>
-                                    <th>Remaining</th>
-                                    <th>Fill %</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
+                    <div id="adminRegistrationsTableWrapper" class="mt-3 d-none">
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle w-100" id="adminRegistrationsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Event</th>
+                                        <th>Club</th>
+                                        <th>Start time</th>
+                                        <th>Capacity</th>
+                                        <th>Registered</th>
+                                        <th>Remaining</th>
+                                        <th>Fill %</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -86,25 +110,32 @@ export function renderAdminDashboard(user) {
             <div class="card p-4 mt-4 d-none" id="adminEventDetails">
                 <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
                     <h5 class="fw-semibold mb-0">Registrations for <span id="adminEventDetailsTitle">Event</span></h5>
-                    <button class="btn btn-sm btn-outline-secondary" id="adminEventDetailsRefresh">Refresh</button>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-sm btn-outline-secondary" id="adminEventDetailsRefresh">Refresh</button>
+                        <button class="btn btn-sm btn-outline-secondary" data-action="toggle-card" data-target="adminEventDetailsBody" aria-controls="adminEventDetailsBody" aria-expanded="true" title="Collapse">
+                            <i class="bi bi-chevron-up"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="small text-muted" id="adminEventDetailsStatus">Select an event to view registrations.</div>
-                <div id="adminEventDetailsEmpty" class="text-muted d-none mt-3">No registrations yet.</div>
+                <div id="adminEventDetailsBody">
+                    <div class="small text-muted" id="adminEventDetailsStatus">Select an event to view registrations.</div>
+                    <div id="adminEventDetailsEmpty" class="text-muted d-none mt-3">No registrations yet.</div>
 
-                <div id="adminEventDetailsTableWrapper" class="mt-3 d-none">
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle w-100" id="adminEventDetailsTable">
-                            <thead>
-                                <tr>
-                                    <th>Student</th>
-                                    <th>Email</th>
-                                    <th>Username</th>
-                                    <th>Registered at</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
+                    <div id="adminEventDetailsTableWrapper" class="mt-3 d-none">
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle w-100" id="adminEventDetailsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Student</th>
+                                        <th>Email</th>
+                                        <th>Username</th>
+                                        <th>Registered at</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -113,6 +144,7 @@ export function renderAdminDashboard(user) {
 
     bindDashboardActions();
     bindParticipationActions();
+    bindCardToggleActions();
 }
 
 function resetDashboardState() {
@@ -156,6 +188,43 @@ function bindParticipationActions() {
     }
 }
 
+function bindCardToggleActions() {
+    document.addEventListener('click', event => {
+        const button = event.target.closest('button[data-action="toggle-card"]');
+        if (!button) {
+            return;
+        }
+        const targetId = button.dataset.target;
+        if (!targetId) {
+            return;
+        }
+        toggleCardBody(targetId);
+    });
+}
+
+function toggleCardBody(targetId) {
+    const body = document.getElementById(targetId);
+    if (!body) {
+        return;
+    }
+    const collapsed = body.classList.toggle('d-none');
+    const button = document.querySelector(`button[data-target="${targetId}"]`);
+    updateToggleButton(button, !collapsed);
+}
+
+function updateToggleButton(button, expanded) {
+    if (!button) {
+        return;
+    }
+    button.setAttribute('aria-expanded', String(expanded));
+    button.title = expanded ? 'Collapse' : 'Expand';
+    const icon = button.querySelector('i');
+    if (icon) {
+        icon.classList.toggle('bi-chevron-up', expanded);
+        icon.classList.toggle('bi-chevron-down', !expanded);
+    }
+}
+
 function getParticipationUi() {
     return {
         statusEl: document.getElementById('adminParticipationStatus'),
@@ -194,6 +263,7 @@ async function loadParticipationStats() {
         showCharts: false,
         disableButton: true
     });
+    ensureCardBodyVisible('adminParticipationBody');
 
     try {
         const response = await apiRequest('/api/admin/participation');
@@ -248,9 +318,21 @@ function renderParticipationCharts(eventStats, clubStats) {
     }
 
     const eventLabels = eventStats.map(stat => `${stat.eventTitle} (${stat.clubName})`);
+    const eventRanks = eventLabels.map((_, index) => String(index + 1));
     const eventCounts = eventStats.map(stat => stat.registrationCount);
     const clubLabels = clubStats.map(stat => stat.clubName);
+    const clubRanks = clubLabels.map((_, index) => String(index + 1));
     const clubCounts = clubStats.map(stat => stat.registrationCount);
+    const eventColor = resolveCssVar('--accent', '#1f8a70');
+    const clubColor = resolveCssVar('--accent-2', '#e17a2d');
+    const gridColor = resolveCssVar('--stroke', '#e5dfd6');
+    const textColor = resolveChartTextColor();
+    const axisTitleStyle = { color: textColor, font: { size: 12, weight: '600' } };
+    const gridStyle = {
+        color: withAlpha(gridColor, 0.35),
+        borderDash: [4, 4]
+    };
+    const interaction = { mode: 'nearest', intersect: false };
 
     const eventCanvas = document.getElementById('adminEventRegistrationsChart');
     const clubCanvas = document.getElementById('adminTopClubsChart');
@@ -259,26 +341,70 @@ function renderParticipationCharts(eventStats, clubStats) {
     clubChart?.destroy?.();
 
     if (eventCanvas) {
+        applyChartHeight(eventCanvas, eventLabels.length);
         eventChart = new chartLib(eventCanvas, {
-            type: 'bar',
+            type: 'line',
             data: {
-                labels: eventLabels,
+                labels: eventRanks,
                 datasets: [{
                     label: 'Registrations',
                     data: eventCounts,
-                    backgroundColor: '#3b82f6'
+                    borderColor: eventColor,
+                    backgroundColor: (context) => createAreaGradient(context, eventColor),
+                    fill: true,
+                    tension: 0.35,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    pointBackgroundColor: eventColor,
+                    pointBorderColor: eventColor,
+                    pointHitRadius: 8,
+                    borderWidth: 2
                 }]
             },
             options: {
+                interaction,
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: { padding: { right: 8 } },
+                onClick: (event, elements, chart) => {
+                    const index = resolveChartIndex(chart, event);
+                    if (index === null) {
+                        return;
+                    }
+                    const stat = eventStats[index];
+                    if (stat) {
+                        openEventDetailsFromChart(stat);
+                    }
+                },
                 plugins: {
-                    legend: { display: false }
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            title: (items) => items.map(item => eventLabels[item.dataIndex] || ''),
+                            label: (item) => {
+                                const rank = item.dataIndex + 1;
+                                const count = item.parsed.y ?? 0;
+                                return `Rank: ${rank} · Registrations: ${count}`;
+                            }
+                        }
+                    }
                 },
                 scales: {
+                    x: {
+                        ticks: {
+                            color: textColor,
+                            maxTicksLimit: 6,
+                            autoSkip: true,
+                            callback: (_, index) => eventRanks[index]
+                        },
+                        grid: { display: false },
+                        title: { display: true, text: 'Rank (1 = most registrations)', ...axisTitleStyle }
+                    },
                     y: {
                         beginAtZero: true,
-                        ticks: { precision: 0 }
+                        ticks: { precision: 0, color: textColor },
+                        grid: gridStyle,
+                        title: { display: true, text: 'Registrations', ...axisTitleStyle }
                     }
                 }
             }
@@ -286,31 +412,258 @@ function renderParticipationCharts(eventStats, clubStats) {
     }
 
     if (clubCanvas) {
+        applyChartHeight(clubCanvas, clubLabels.length);
         clubChart = new chartLib(clubCanvas, {
-            type: 'bar',
+            type: 'line',
             data: {
-                labels: clubLabels,
+                labels: clubRanks,
                 datasets: [{
                     label: 'Registrations',
                     data: clubCounts,
-                    backgroundColor: '#22c55e'
+                    borderColor: clubColor,
+                    backgroundColor: (context) => createAreaGradient(context, clubColor),
+                    fill: true,
+                    tension: 0.35,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    pointBackgroundColor: clubColor,
+                    pointBorderColor: clubColor,
+                    pointHitRadius: 8,
+                    borderWidth: 2
                 }]
             },
             options: {
+                interaction,
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: { padding: { right: 8 } },
+                onClick: (event, elements, chart) => {
+                    const index = resolveChartIndex(chart, event);
+                    if (index === null) {
+                        return;
+                    }
+                    const stat = clubStats[index];
+                    if (stat) {
+                        openClubDetailsFromChart(stat);
+                    }
+                },
                 plugins: {
-                    legend: { display: false }
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            title: (items) => items.map(item => clubLabels[item.dataIndex] || ''),
+                            label: (item) => {
+                                const rank = item.dataIndex + 1;
+                                const count = item.parsed.y ?? 0;
+                                return `Rank: ${rank} · Registrations: ${count}`;
+                            }
+                        }
+                    }
                 },
                 scales: {
+                    x: {
+                        ticks: {
+                            color: textColor,
+                            maxTicksLimit: 6,
+                            autoSkip: true,
+                            callback: (_, index) => clubRanks[index]
+                        },
+                        grid: { display: false },
+                        title: { display: true, text: 'Rank (1 = most registrations)', ...axisTitleStyle }
+                    },
                     y: {
                         beginAtZero: true,
-                        ticks: { precision: 0 }
+                        ticks: { precision: 0, color: textColor },
+                        grid: gridStyle,
+                        title: { display: true, text: 'Registrations', ...axisTitleStyle }
                     }
                 }
             }
         });
     }
+}
+
+function resolveChartIndex(chart, event) {
+    if (!chart) {
+        return null;
+    }
+    const points = chart.getElementsAtEventForMode(
+        event,
+        'nearest',
+        { intersect: false },
+        true
+    );
+    if (!points.length) {
+        return null;
+    }
+    return points[0].index ?? null;
+}
+
+function openEventDetailsFromChart(stat) {
+    if (!stat?.eventId) {
+        return;
+    }
+    const title = stat.eventTitle || 'Event';
+    loadEventRegistrationsForEvent(stat.eventId, title);
+    scrollCardIntoView('adminEventDetails');
+}
+
+async function openClubDetailsFromChart(stat) {
+    if (!stat?.clubId) {
+        return;
+    }
+    const clubName = stat.clubName || 'Club';
+    const registrationsCard = document.getElementById('adminRegistrationsCard');
+    if (registrationsCard) {
+        registrationsCard.classList.remove('d-none');
+    }
+    if (!state.events.length) {
+        await refreshEventsTable({ silent: false });
+    }
+    applyClubFilterToRegistrationsTable(clubName);
+    updateRegistrationsUi(getRegistrationsUi(), {
+        status: `Filtered to ${clubName}. Click an event to view registered students.`,
+        showEmpty: false,
+        showTable: true
+    });
+    scrollCardIntoView('adminRegistrationsCard');
+}
+
+function applyClubFilterToRegistrationsTable(clubName) {
+    if (!clubName) {
+        return;
+    }
+    if (registrationsTable?.columns) {
+        registrationsTable.columns().search('');
+        const escaped = escapeRegex(clubName);
+        registrationsTable.column(1).search(`^${escaped}$`, true, false).draw();
+        return;
+    }
+    const table = document.getElementById('adminRegistrationsTable');
+    if (!table) {
+        return;
+    }
+    const rows = table.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const cellText = cells[1]?.textContent?.trim() || '';
+        row.classList.toggle('d-none', cellText !== clubName);
+    });
+}
+
+function escapeRegex(value) {
+    return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function scrollCardIntoView(cardId) {
+    const card = document.getElementById(cardId);
+    if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+function ensureCardBodyVisible(targetId) {
+    const body = document.getElementById(targetId);
+    if (!body) {
+        return;
+    }
+    if (body.classList.contains('d-none')) {
+        body.classList.remove('d-none');
+        const button = document.querySelector(`button[data-target="${targetId}"]`);
+        updateToggleButton(button, true);
+    }
+}
+
+function truncateLabel(label) {
+    const text = String(label ?? '');
+    if (text.length <= 26) {
+        return text;
+    }
+    return `${text.slice(0, 23)}...`;
+}
+
+function applyChartHeight(canvas, itemCount) {
+    if (!canvas) {
+        return;
+    }
+    const minHeight = 240;
+    const maxHeight = 320;
+    const perItem = 6;
+    const height = Math.min(Math.max(minHeight + itemCount * perItem, minHeight), maxHeight);
+    canvas.height = height;
+    canvas.style.height = `${height}px`;
+}
+
+function resolveCssVar(name, fallback) {
+    const value = getComputedStyle(document.documentElement)
+        .getPropertyValue(name)
+        .trim();
+    return value || fallback;
+}
+
+function resolveChartTextColor() {
+    const theme = document.documentElement.dataset.bsTheme || 'light';
+    if (theme === 'dark') {
+        return resolveCssVar('--muted', '#c7d2e3');
+    }
+    return resolveCssVar('--ink', '#0f1d1a');
+}
+
+function createAreaGradient(context, color) {
+    const { chart } = context;
+    if (!chart) {
+        return color;
+    }
+    const { ctx, chartArea } = chart;
+    if (!chartArea) {
+        return color;
+    }
+    const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+    gradient.addColorStop(0, withAlpha(color, 0.35));
+    gradient.addColorStop(1, withAlpha(color, 0.05));
+    return gradient;
+}
+
+function withAlpha(color, alpha) {
+    const rgb = toRgb(color);
+    if (!rgb) {
+        return color;
+    }
+    return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+}
+
+function toRgb(color) {
+    if (!color) {
+        return null;
+    }
+    const value = color.trim();
+    if (value.startsWith('rgb')) {
+        const parts = value.replace(/rgba?\(|\)/g, '').split(',').map(part => part.trim());
+        if (parts.length >= 3) {
+            return {
+                r: Number(parts[0]),
+                g: Number(parts[1]),
+                b: Number(parts[2])
+            };
+        }
+        return null;
+    }
+    if (value.startsWith('#')) {
+        const hex = value.slice(1);
+        if (hex.length === 3) {
+            const r = parseInt(hex[0] + hex[0], 16);
+            const g = parseInt(hex[1] + hex[1], 16);
+            const b = parseInt(hex[2] + hex[2], 16);
+            return { r, g, b };
+        }
+        if (hex.length === 6) {
+            const r = parseInt(hex.slice(0, 2), 16);
+            const g = parseInt(hex.slice(2, 4), 16);
+            const b = parseInt(hex.slice(4, 6), 16);
+            return { r, g, b };
+        }
+    }
+    return null;
 }
 
 function getRegistrationsUi() {
@@ -351,6 +704,9 @@ async function refreshEventsTable({ silent = false } = {}) {
         showTable: false,
         disableButton: true
     });
+    if (!silent) {
+        ensureCardBodyVisible('adminRegistrationsBody');
+    }
 
     try {
         const response = await apiRequest('/api/events');
@@ -770,6 +1126,7 @@ function applySelectedEvent(eventId, eventTitle, ui) {
     if (ui.detailsCard) {
         ui.detailsCard.classList.remove('d-none');
     }
+    ensureCardBodyVisible('adminEventDetailsBody');
     setDetailsRefreshState(ui, true);
 }
 
