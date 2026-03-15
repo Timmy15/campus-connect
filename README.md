@@ -22,8 +22,8 @@ The app runs on `http://localhost:8081`.
 
 ---
 
-## Feature Walkthrough (Add Screenshots)
-Replace each placeholder with a screenshot of the feature.
+## Feature Walkthrough
+Walkthrough with screenshots
 
 ### 1) Login & Register
 Use this to access the system. Roles are assigned automatically from the email domain.
@@ -198,7 +198,7 @@ Full documentation is available in Swagger at `http://localhost:8081/swagger-ui/
 ---
 
 ## Testing
-Run the integration test suite (Cucumber E2E):
+Run the End to end test suite (Cucumber E2E):
 ```bash
 .\mvnw -P e2e verify
 ```
