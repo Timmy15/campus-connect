@@ -423,7 +423,7 @@ function renderRegisterButton(eventId, label, disabled) {
     return `
                 <div class="mt-3 d-flex justify-content-end">
                     <button class="btn btn-sm btn-outline-primary" data-action="register-event" data-event-id="${eventId}" ${disabledAttr}>
-                        ${escapeHtml(label)}
+                        <i class="bi bi-check2-circle me-1"></i>${escapeHtml(label)}
                     </button>
                 </div>
     `;

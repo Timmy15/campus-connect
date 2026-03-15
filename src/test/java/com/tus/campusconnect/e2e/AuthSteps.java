@@ -91,10 +91,9 @@ public class AuthSteps {
         Object status = ui.executeAsyncScript(
                 "const callback = arguments[arguments.length - 1];" +
                         "const token = window.localStorage.getItem('cc.token');" +
-                        "fetch(arguments[0] + '/api/admin/ping', {" +
+                        "fetch('" + baseUrl + "/api/admin/ping', {" +
                         "  headers: { Authorization: 'Bearer ' + token }" +
-                        "}).then(r => callback(r.status)).catch(() => callback(0));",
-                baseUrl
+                        "}).then(r => callback(r.status)).catch(() => callback(0));"
         );
         lastStatus = Integer.parseInt(status.toString());
     }

@@ -1,5 +1,6 @@
 import { apiRequest, safeJson } from '../utils/api.js';
 import { escapeHtml } from '../utils/dom.js';
+import { confirmModal } from '../utils/modal.js';
 
 export function renderMyRegistrations() {
     const appRoot = document.getElementById('app-root');
@@ -126,7 +127,7 @@ function renderCancelAction(item) {
     }
     return `
         <button class="btn btn-sm btn-outline-danger" data-action="cancel-registration" data-id="${registrationId}">
-            Cancel
+            <i class="bi bi-x-circle me-1"></i>Cancel
         </button>
     `;
 }
@@ -147,7 +148,13 @@ function bindCancelActions() {
         if (!registrationId) {
             return;
         }
-        const confirmed = globalThis.confirm('Are you sure you want to cancel this registration?');
+        const confirmed = await confirmModal({
+            title: 'Cancel registration',
+            message: 'Are you sure you want to cancel this registration?',
+            confirmText: 'Cancel registration',
+            confirmVariant: 'danger',
+            iconClass: 'bi bi-x-circle'
+        });
         if (!confirmed) {
             return;
         }

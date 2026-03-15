@@ -40,7 +40,7 @@ public class EventSteps {
         ui.type(By.id("clubName"), clubName);
         ui.type(By.id("clubCategory"), "Community");
         ui.type(By.id("clubDescription"), "Event test club.");
-        ui.clickWithFallback(By.id("clubFormSubmit"));
+        ui.click(By.id("clubFormSubmit"));
         waitForEventStatus("Club created");
     }
 
@@ -54,7 +54,7 @@ public class EventSteps {
         ui.setDateTime(By.id("eventStartTime"), futureDateTime(1, 2));
         ui.setDateTime(By.id("eventEndTime"), futureDateTime(1, 4));
         ui.type(By.id("eventDescription"), "Event description.");
-        ui.clickWithFallback(By.id("eventFormSubmit"));
+        ui.click(By.id("eventFormSubmit"));
         waitForEventAction(eventRowLocator(eventTitle), "Event created");
     }
 
@@ -78,7 +78,7 @@ public class EventSteps {
         ui.type(By.id("eventLocation"), "Library");
         ui.type(By.id("eventCapacity"), "0");
         ui.setDateTime(By.id("eventStartTime"), futureDateTime(2, 1));
-        ui.clickWithFallback(By.id("eventFormSubmit"));
+        ui.click(By.id("eventFormSubmit"));
     }
 
     @Then("I see an invalid capacity error for events")
@@ -90,14 +90,14 @@ public class EventSteps {
     @When("I update the event with valid details")
     public void iUpdateTheEventWithValidDetails() {
         updatedEventTitle = eventTitle + "-Updated";
-        ui.clickWithFallback(eventEditButtonLocator(eventTitle));
+        ui.click(eventEditButtonLocator(eventTitle));
         ui.waitForText(By.id("eventFormSubmit"), "Update Event");
         ui.type(By.id("eventTitle"), updatedEventTitle);
         ui.type(By.id("eventLocation"), "Updated Hall");
         ui.type(By.id("eventCapacity"), "30");
         ui.setDateTime(By.id("eventStartTime"), futureDateTime(3, 1));
         ui.setDateTime(By.id("eventEndTime"), futureDateTime(3, 3));
-        ui.clickWithFallback(By.id("eventFormSubmit"));
+        ui.click(By.id("eventFormSubmit"));
         waitForEventAction(eventRowLocator(updatedEventTitle), "Event updated");
     }
 
@@ -115,10 +115,10 @@ public class EventSteps {
 
     @When("I attempt to update the event with a past date")
     public void iAttemptToUpdateTheEventWithAPastDate() {
-        ui.clickWithFallback(eventEditButtonLocator(eventTitle));
+        ui.click(eventEditButtonLocator(eventTitle));
         ui.waitForText(By.id("eventFormSubmit"), "Update Event");
         ui.setDateTime(By.id("eventStartTime"), pastDateTime(1));
-        ui.clickWithFallback(By.id("eventFormSubmit"));
+        ui.click(By.id("eventFormSubmit"));
     }
 
     @Then("I see an invalid date error for events")

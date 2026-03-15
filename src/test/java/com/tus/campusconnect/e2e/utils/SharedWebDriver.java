@@ -1,7 +1,6 @@
 package com.tus.campusconnect.e2e.utils;
 
 import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.UnexpectedAlertBehaviour;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -25,20 +24,12 @@ public final class SharedWebDriver {
 
     public static void reset() {
         if (driver == null) {
-            return;
+            throw new IllegalStateException("WebDriver not initialised.");
         }
-        try {
-            driver.manage().deleteAllCookies();
-        } catch (Exception ignored) {
-            // Best-effort cleanup; failures shouldn't fail the test suite.
-        }
-        try {
-            ((JavascriptExecutor) driver).executeScript(
-                    "try { window.localStorage.clear(); window.sessionStorage.clear(); } catch (e) {}"
-            );
-        } catch (Exception ignored) {
-            // Best-effort cleanup; failures shouldn't fail the test suite.
-        }
+        driver.manage().deleteAllCookies();
+        ((JavascriptExecutor) driver).executeScript(
+                "window.localStorage.clear(); window.sessionStorage.clear();"
+        );
     }
 
     public static void terminateDriver() {
@@ -64,7 +55,6 @@ public final class SharedWebDriver {
         options.setExperimentalOption("prefs", buildChromePreferences());
         options.setExperimentalOption("excludeSwitches", new String[]{"enable-automation"});
         options.setExperimentalOption("useAutomationExtension", false);
-        options.setUnhandledPromptBehaviour(UnexpectedAlertBehaviour.IGNORE);
         return options;
     }
 

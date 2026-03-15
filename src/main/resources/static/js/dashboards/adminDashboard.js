@@ -1,5 +1,6 @@
 ﻿import { apiRequest, safeJson } from '../utils/api.js';
 import { escapeHtml } from '../utils/dom.js';
+import { confirmModal } from '../utils/modal.js';
 
 let registrationsTable = null;
 let detailTable = null;
@@ -308,24 +309,15 @@ async function loadParticipationStats() {
 
 function renderParticipationCharts(eventStats, clubStats) {
     const chartLib = globalThis.Chart;
-    if (!chartLib) {
-        updateParticipationUi(getParticipationUi(), {
-            status: 'Chart library not available.',
-            showEmpty: false,
-            showCharts: false
-        });
-        return;
-    }
-
     const eventLabels = eventStats.map(stat => `${stat.eventTitle} (${stat.clubName})`);
     const eventRanks = eventLabels.map((_, index) => String(index + 1));
     const eventCounts = eventStats.map(stat => stat.registrationCount);
     const clubLabels = clubStats.map(stat => stat.clubName);
     const clubRanks = clubLabels.map((_, index) => String(index + 1));
     const clubCounts = clubStats.map(stat => stat.registrationCount);
-    const eventColor = resolveCssVar('--accent', '#1f8a70');
-    const clubColor = resolveCssVar('--accent-2', '#e17a2d');
-    const gridColor = resolveCssVar('--stroke', '#e5dfd6');
+    const eventColor = resolveCssVar('--accent');
+    const clubColor = resolveCssVar('--accent-2');
+    const gridColor = resolveCssVar('--stroke');
     const textColor = resolveChartTextColor();
     const axisTitleStyle = { color: textColor, font: { size: 12, weight: '600' } };
     const gridStyle = {
@@ -574,14 +566,6 @@ function ensureCardBodyVisible(targetId) {
     }
 }
 
-function truncateLabel(label) {
-    const text = String(label ?? '');
-    if (text.length <= 26) {
-        return text;
-    }
-    return `${text.slice(0, 23)}...`;
-}
-
 function applyChartHeight(canvas, itemCount) {
     if (!canvas) {
         return;
@@ -594,19 +578,22 @@ function applyChartHeight(canvas, itemCount) {
     canvas.style.height = `${height}px`;
 }
 
-function resolveCssVar(name, fallback) {
+function resolveCssVar(name) {
     const value = getComputedStyle(document.documentElement)
         .getPropertyValue(name)
         .trim();
-    return value || fallback;
+    if (!value) {
+        throw new Error(`Missing CSS variable ${name}`);
+    }
+    return value;
 }
 
 function resolveChartTextColor() {
     const theme = document.documentElement.dataset.bsTheme || 'light';
     if (theme === 'dark') {
-        return resolveCssVar('--muted', '#c7d2e3');
+        return resolveCssVar('--muted');
     }
-    return resolveCssVar('--ink', '#0f1d1a');
+    return resolveCssVar('--ink');
 }
 
 function createAreaGradient(context, color) {
@@ -753,83 +740,60 @@ function renderEventsTable() {
     if (!table) {
         return;
     }
-
-    if (globalThis.$?.fn?.DataTable) {
-        const columns = [
-            {
-                data: 'title',
-                render: (data) => escapeHtml(data || 'Event')
-            },
-            {
-                data: 'clubName',
-                render: (data) => escapeHtml(data || 'Club')
-            },
-            {
-                data: 'startTime',
-                render: (data) => formatEventDate(data)
-            },
-            {
-                data: 'capacity',
-                render: (data, type, row) => formatCapacity(row)
-            },
-            {
-                data: 'registeredCount',
-                render: (data, type, row) => resolveRegisteredCount(row)
-            },
-            {
-                data: 'capacityRemaining',
-                render: (data, type, row) => formatRemaining(row)
-            },
-            {
-                data: null,
-                render: (data, type, row) => formatFillPercent(row)
-            }
-        ];
-
-        if (registrationsTable) {
-            registrationsTable.clear();
-            registrationsTable.rows.add(state.events).draw(false);
-        } else {
-            registrationsTable = globalThis.$(table).DataTable({
-                data: state.events,
-                columns,
-                rowId: (row) => `event-${row.id}`,
-                pageLength: 10,
-                lengthChange: false,
-                autoWidth: false,
-                order: [[4, 'desc']]
-            });
+    const columns = [
+        {
+            data: 'title',
+            render: (data) => escapeHtml(data || 'Event')
+        },
+        {
+            data: 'clubName',
+            render: (data) => escapeHtml(data || 'Club')
+        },
+        {
+            data: 'startTime',
+            render: (data) => formatEventDate(data)
+        },
+        {
+            data: 'capacity',
+            render: (data, type, row) => formatCapacity(row)
+        },
+        {
+            data: 'registeredCount',
+            render: (data, type, row) => resolveRegisteredCount(row)
+        },
+        {
+            data: 'capacityRemaining',
+            render: (data, type, row) => formatRemaining(row)
+        },
+        {
+            data: null,
+            render: (data, type, row) => formatFillPercent(row)
         }
+    ];
 
-        bindEventRowClicks();
-        highlightSelectedEventRow();
-        return;
+    if (registrationsTable) {
+        registrationsTable.clear();
+        registrationsTable.rows.add(state.events).draw(false);
+    } else {
+        registrationsTable = globalThis.$(table).DataTable({
+            data: state.events,
+            columns,
+            rowId: (row) => `event-${row.id}`,
+            pageLength: 10,
+            lengthChange: false,
+            autoWidth: false,
+            order: [[4, 'desc']]
+        });
     }
 
-    const tbody = table.querySelector('tbody');
-    tbody.innerHTML = state.events.map(event => {
-        return `
-            <tr data-event-id="${event.id}">
-                <td>${escapeHtml(event.title || 'Event')}</td>
-                <td>${escapeHtml(event.clubName || 'Club')}</td>
-                <td>${formatEventDate(event.startTime)}</td>
-                <td>${formatCapacity(event)}</td>
-                <td>${resolveRegisteredCount(event)}</td>
-                <td>${formatRemaining(event)}</td>
-                <td>${formatFillPercent(event)}</td>
-            </tr>
-        `;
-    }).join('');
-
-    bindEventRowClicksFallback(table);
-    highlightSelectedEventRowFallback(table);
+    bindEventRowClicks();
+    highlightSelectedEventRow();
 }
 
 function bindEventRowClicks() {
     const table = document.getElementById('adminRegistrationsTable');
-    const $ = globalThis.$;
-    if (table && registrationsTable && $) {
-        const $table = $(table);
+    if (table && registrationsTable) {
+        const $table = globalThis.$(table);
         $table.off('click', 'tbody tr');
         $table.on('click', 'tbody tr', function () {
             const data = registrationsTable.row(this).data();
@@ -839,25 +803,6 @@ function bindEventRowClicks() {
             loadEventRegistrationsForEvent(data.id, data.title || 'Event');
         });
     }
-}
-
-function bindEventRowClicksFallback(table) {
-    if (table.dataset.clickBound) {
-        return;
-    }
-    table.dataset.clickBound = 'true';
-    table.querySelector('tbody')?.addEventListener('click', event => {
-        const row = event.target.closest('tr[data-event-id]');
-        if (!row) {
-            return;
-        }
-        const eventId = row.dataset.eventId;
-        const eventInfo = state.events.find(item => String(item.id) === String(eventId));
-        if (!eventInfo) {
-            return;
-        }
-        loadEventRegistrationsForEvent(eventInfo.id, eventInfo.title || 'Event');
-    });
 }
 
 function highlightSelectedEventRow() {
@@ -871,15 +816,6 @@ function highlightSelectedEventRow() {
         if (node) {
             node.classList.toggle('table-primary', Boolean(isSelected));
         }
-    });
-}
-
-function highlightSelectedEventRowFallback(table) {
-    if (!table || state.selectedEventId == null) {
-        return;
-    }
-    table.querySelectorAll('tbody tr').forEach(row => {
-        row.classList.toggle('table-primary', row.dataset.eventId === String(state.selectedEventId));
     });
 }
 
@@ -919,83 +855,57 @@ function renderEventDetailsTable() {
     if (!table) {
         return;
     }
-
-    if (globalThis.$?.fn?.DataTable) {
-        const columns = [
-            {
-                data: 'fullName',
-                render: (data) => escapeHtml(data || 'Student')
-            },
-            {
-                data: 'email',
-                render: (data) => escapeHtml(data || '')
-            },
-            {
-                data: 'username',
-                render: (data) => escapeHtml(data || '-')
-            },
-            {
-                data: 'registeredAt',
-                render: (data) => formatEventDate(data)
-            },
-            {
-                data: null,
-                orderable: false,
-                searchable: false,
-                render: (data, type, row) => {
-                    const name = row?.fullName || 'Student';
-                    const encodedName = encodeURIComponent(name);
-                    return `<button class="btn btn-sm btn-outline-danger" data-registration-id="${row.registrationId}" data-student-name="${encodedName}">Unregister</button>`;
-                }
+    const columns = [
+        {
+            data: 'fullName',
+            render: (data) => escapeHtml(data || 'Student')
+        },
+        {
+            data: 'email',
+            render: (data) => escapeHtml(data || '')
+        },
+        {
+            data: 'username',
+            render: (data) => escapeHtml(data || '-')
+        },
+        {
+            data: 'registeredAt',
+            render: (data) => formatEventDate(data)
+        },
+        {
+            data: null,
+            orderable: false,
+            searchable: false,
+            render: (data, type, row) => {
+                const name = row?.fullName || 'Student';
+                const encodedName = encodeURIComponent(name);
+                return `<button class="btn btn-sm btn-outline-danger" data-registration-id="${row.registrationId}" data-student-name="${encodedName}"><i class="bi bi-person-x me-1"></i>Unregister</button>`;
             }
-        ];
-
-        if (detailTable) {
-            detailTable.clear();
-            detailTable.rows.add(state.registrations).draw(false);
-        } else {
-            detailTable = globalThis.$(table).DataTable({
-                data: state.registrations,
-                columns,
-                rowId: (row) => `registration-${row.registrationId}`,
-                pageLength: 8,
-                lengthChange: false,
-                autoWidth: false,
-                order: [[3, 'desc']]
-            });
         }
+    ];
 
-        bindDetailActions();
-        return;
+    if (detailTable) {
+        detailTable.clear();
+        detailTable.rows.add(state.registrations).draw(false);
+    } else {
+        detailTable = globalThis.$(table).DataTable({
+            data: state.registrations,
+            columns,
+            rowId: (row) => `registration-${row.registrationId}`,
+            pageLength: 8,
+            lengthChange: false,
+            autoWidth: false,
+            order: [[3, 'desc']]
+        });
     }
 
-    const tbody = table.querySelector('tbody');
-    tbody.innerHTML = state.registrations.map(registration => {
-        const studentName = registration.fullName || 'Student';
-        const email = registration.email || '';
-        const username = registration.username || '';
-        const encodedName = encodeURIComponent(studentName);
-        return `
-            <tr>
-                <td>${escapeHtml(studentName)}</td>
-                <td>${escapeHtml(email)}</td>
-                <td>${escapeHtml(username || '-')}</td>
-                <td>${formatEventDate(registration.registeredAt)}</td>
-                <td class="text-end">
-                    <button class="btn btn-sm btn-outline-danger" data-registration-id="${registration.registrationId}" data-student-name="${encodedName}">Unregister</button>
-                </td>
-            </tr>
-        `;
-    }).join('');
-
-    bindDetailActionsFallback(table);
+    bindDetailActions();
 }
 
 function bindDetailActions() {
     const table = document.getElementById('adminEventDetailsTable');
-    const $ = globalThis.$;
-    if (table && $) {
-        const $table = $(table);
+    if (table) {
+        const $table = globalThis.$(table);
         $table.off('click', 'button[data-registration-id]');
         $table.on('click', 'button[data-registration-id]', async function () {
             const registrationId = this.dataset.registrationId;
@@ -1004,7 +914,13 @@ function bindDetailActions() {
             }
             const encodedName = this.dataset.studentName || '';
             const studentName = encodedName ? decodeURIComponent(encodedName) : 'this student';
-            const confirmed = globalThis.confirm(`Unregister ${studentName} from ${state.selectedEventTitle}?`);
+            const confirmed = await confirmModal({
+                title: 'Unregister student',
+                message: `Unregister ${studentName} from ${state.selectedEventTitle}?`,
+                confirmText: 'Unregister',
+                confirmVariant: 'danger',
+                iconClass: 'bi bi-person-x'
+            });
             if (!confirmed) {
                 return;
             }
@@ -1012,31 +928,6 @@ function bindDetailActions() {
             await unregisterStudent(state.selectedEventId, registrationId);
         });
     }
-}
-
-function bindDetailActionsFallback(table) {
-    if (table.dataset.actionBound) {
-        return;
-    }
-    table.dataset.actionBound = 'true';
-    table.addEventListener('click', async event => {
-        const button = event.target.closest('button[data-registration-id]');
-        if (!button) {
-            return;
-        }
-        const registrationId = button.dataset.registrationId;
-        if (!registrationId || !state.selectedEventId) {
-            return;
-        }
-        const encodedName = button.dataset.studentName || '';
-        const studentName = encodedName ? decodeURIComponent(encodedName) : 'this student';
-        const confirmed = globalThis.confirm(`Unregister ${studentName} from ${state.selectedEventTitle}?`);
-        if (!confirmed) {
-            return;
-        }
-        button.disabled = true;
-        await unregisterStudent(state.selectedEventId, registrationId);
-    });
 }
 
 async function unregisterStudent(eventId, registrationId) {
