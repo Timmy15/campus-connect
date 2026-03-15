@@ -122,6 +122,27 @@ body.auth-mode .main-content {
     background: var(--panel);
 }
 
+.modal-content {
+    background: var(--panel);
+    color: var(--ink);
+    border: 1px solid var(--stroke);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+}
+
+.modal-header,
+.modal-footer {
+    border-color: var(--stroke);
+}
+
+.modal-title i {
+    color: var(--accent);
+}
+
+[data-bs-theme="dark"] .btn-close {
+    filter: invert(1);
+}
+
 .btn-primary {
     background: linear-gradient(135deg, var(--accent), #1d6d5b);
     border: none;

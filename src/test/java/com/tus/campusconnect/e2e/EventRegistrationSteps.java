@@ -17,7 +17,7 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.TimeoutException;
+import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -137,32 +137,19 @@ public class EventRegistrationSteps {
 
     @When("I click register")
     public void iClickRegister() {
-        ui.clickWithFallback(registerButtonLocator(eventTitle));
+        ui.click(registerButtonLocator(eventTitle));
     }
 
     @Then("my registration is stored on the system")
     public void myRegistrationIsStoredOnTheSystem() {
-        try {
-            boolean registered = new WebDriverWait(driver, Duration.ofSeconds(8))
-                    .until(d -> isStudentRegistered());
-            assertThat(registered).isTrue();
-            return;
-        } catch (TimeoutException ignored) {
-            // Fall through to API registration check.
-        }
-
-        int status = registerEvent(studentToken, eventId);
-        assertThat(status).isEqualTo(201);
-        assertThat(isStudentRegistered()).isTrue();
+        boolean registered = new WebDriverWait(driver, Duration.ofSeconds(8))
+                .until(d -> isStudentRegistered());
+        assertThat(registered).isTrue();
     }
 
     @Then("I get a registration successful message")
     public void iGetARegistrationSuccessfulMessage() {
-        try {
-            ui.waitForText(By.id("eventBrowseStatus"), "Registration successful.");
-        } catch (TimeoutException ex) {
-            assertThat(isStudentRegistered()).isTrue();
-        }
+        ui.waitForText(By.id("eventBrowseStatus"), "Registration successful.");
     }
 
     @Then("my registration appears in My Registrations")
@@ -184,31 +171,25 @@ public class EventRegistrationSteps {
 
     @Then("I get a message {string}")
     public void iGetAMessage(String message) {
-        try {
-            boolean found = new WebDriverWait(driver, Duration.ofSeconds(12))
-                    .until(d -> {
+        boolean found = new WebDriverWait(driver, Duration.ofSeconds(12))
+                .until(d -> {
+                    try {
                         String statusText = readStatusText();
-                        if (statusText != null && statusText.contains(message)) {
+                        if (statusText.contains(message)) {
                             return true;
                         }
-                        try {
-                            WebElement note = d.findElement(registrationNoteLocator(eventTitle));
+                        for (WebElement note : d.findElements(registrationNoteLocator(eventTitle))) {
                             String noteText = note.getText();
-                            return noteText != null && noteText.contains(message);
-                        } catch (RuntimeException ex) {
-                            return false;
+                            if (noteText != null && noteText.contains(message)) {
+                                return true;
+                            }
                         }
-                    });
-            assertThat(found).isTrue();
-        } catch (TimeoutException ex) {
-            if ("Capacity for this event is reached".equals(message)
-                    || "You're already registered for this event page".equals(message)) {
-                int status = registerEvent(studentToken, eventId);
-                assertThat(status).isEqualTo(409);
-                return;
-            }
-            throw ex;
-        }
+                        return false;
+                    } catch (StaleElementReferenceException ex) {
+                        return false;
+                    }
+                });
+        assertThat(found).isTrue();
     }
 
     @Then("I'm not registered for the event")
@@ -226,8 +207,8 @@ public class EventRegistrationSteps {
         ui.click(By.id("nav-my-registrations"));
         waitForBrowseCount("registrationCount");
         ui.waitForVisible(cancelButtonLocator(eventTitle));
-        ui.clickWithFallback(cancelButtonLocator(eventTitle));
-        acceptConfirm();
+        ui.click(cancelButtonLocator(eventTitle));
+        ui.acceptConfirm();
     }
 
     @Then("the registration is removed from the system")
@@ -276,19 +257,16 @@ public class EventRegistrationSteps {
         ui.waitForVisible(eventTitleLocator(eventTitle));
     }
 
-    private void acceptConfirm() {
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
-        wait.until(ExpectedConditions.alertIsPresent());
-        driver.switchTo().alert().accept();
-    }
-
     private String readStatusText() {
-        try {
-            WebElement status = driver.findElement(By.id("eventBrowseStatus"));
-            return status.getText();
-        } catch (RuntimeException ex) {
-            return null;
+        WebElement status = driver.findElements(By.id("eventBrowseStatus"))
+                .stream()
+                .findFirst()
+                .orElse(null);
+        if (status == null) {
+            return "";
         }
+        String text = status.getText();
+        return text == null ? "" : text.trim();
     }
 
     private void setAuthStorage(LoginResult login) {

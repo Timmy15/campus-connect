@@ -282,7 +282,3 @@ export function initAuthView(options = {}) {
 
     setActiveView('login');
 }
-
-if (document.getElementById('loginForm')) {
-    initAuthView();
-}

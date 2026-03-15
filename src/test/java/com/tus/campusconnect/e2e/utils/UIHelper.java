@@ -2,6 +2,7 @@ package com.tus.campusconnect.e2e.utils;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -40,23 +41,29 @@ public final class UIHelper {
     }
 
     public void click(By locator) {
-        wait.until(ExpectedConditions.elementToBeClickable(locator)).click();
-    }
-
-    public void clickWithFallback(By locator) {
-        try {
-            click(locator);
-            return;
-        } catch (RuntimeException ignored) {
-            // Fall back to JavaScript click when Selenium reports an intercepted click.
-        }
-
-        WebElement element = wait.until(ExpectedConditions.presenceOfElementLocated(locator));
+        waitForNoModalOverlay();
+        WebElement element = wait.until(ExpectedConditions.elementToBeClickable(locator));
         ((JavascriptExecutor) driver).executeScript(
                 "arguments[0].scrollIntoView({block: 'center', inline: 'center'});",
                 element
         );
-        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", element);
+        waitForNoModalOverlay();
+        waitForElementToBeTopMost(element);
+        wait.until(ExpectedConditions.elementToBeClickable(locator)).click();
+    }
+
+    public void acceptConfirm() {
+        By confirmButton = By.cssSelector(".modal.show [data-role='confirm']");
+        WebDriverWait confirmWait = new WebDriverWait(driver, Duration.ofSeconds(8));
+        WebElement button = confirmWait.until(ExpectedConditions.elementToBeClickable(confirmButton));
+        button.click();
+        boolean closed = confirmWait.until(d ->
+                d.findElements(By.cssSelector(".modal.show")).isEmpty()
+                        && d.findElements(By.cssSelector(".modal-backdrop.show")).isEmpty()
+        );
+        if (!closed) {
+            throw new TimeoutException("Confirmation modal did not close.");
+        }
     }
 
     public void waitForVisible(By locator) {
@@ -78,10 +85,6 @@ public final class UIHelper {
         wait.until(ExpectedConditions.urlContains(fragment));
     }
 
-    public String currentUrl() {
-        return driver.getCurrentUrl();
-    }
-
     public void setDateTime(By locator, String value) {
         WebElement element = wait.until(ExpectedConditions.presenceOfElementLocated(locator));
         ((JavascriptExecutor) driver).executeScript(
@@ -97,7 +100,25 @@ public final class UIHelper {
         return ((JavascriptExecutor) driver).executeAsyncScript(script);
     }
 
-    public Object executeAsyncScript(String script, Object arg) {
-        return ((JavascriptExecutor) driver).executeAsyncScript(script, arg);
+    private void waitForNoModalOverlay() {
+        WebDriverWait overlayWait = new WebDriverWait(driver, Duration.ofSeconds(5));
+        overlayWait.until(d ->
+                d.findElements(By.cssSelector(".modal.show")).isEmpty()
+                        && d.findElements(By.cssSelector(".modal-backdrop.show")).isEmpty()
+        );
+    }
+
+    private void waitForElementToBeTopMost(WebElement element) {
+        WebDriverWait overlayWait = new WebDriverWait(driver, Duration.ofSeconds(8));
+        overlayWait.until(d -> Boolean.TRUE.equals(((JavascriptExecutor) d).executeScript(
+                "const el = arguments[0];" +
+                        "const rect = el.getBoundingClientRect();" +
+                        "if (!rect || rect.width === 0 || rect.height === 0) { return false; }" +
+                        "const cx = rect.left + rect.width / 2;" +
+                        "const cy = rect.top + rect.height / 2;" +
+                        "const top = document.elementFromPoint(cx, cy);" +
+                        "return top === el || (top && el.contains(top));",
+                element
+        )));
     }
 }

@@ -66,7 +66,7 @@ public class ClubSteps {
         ui.type(By.id("clubName"), clubName);
         ui.type(By.id("clubCategory"), "Tech");
         ui.type(By.id("clubDescription"), "Automation test club.");
-        ui.clickWithFallback(By.id("clubFormSubmit"));
+        ui.click(By.id("clubFormSubmit"));
         waitForClubAction(clubNameCellLocator(clubName), "Club created");
     }
 
@@ -79,10 +79,10 @@ public class ClubSteps {
     public void iUpdateTheClubName() {
         updatedClubName = clubName + "-Updated";
         ui.waitForVisible(clubNameCellLocator(clubName));
-        ui.clickWithFallback(editButtonLocator(clubName));
+        ui.click(editButtonLocator(clubName));
         ui.waitForText(By.id("clubFormSubmit"), "Update Club");
         ui.type(By.id("clubName"), updatedClubName);
-        ui.clickWithFallback(By.id("clubFormSubmit"));
+        ui.click(By.id("clubFormSubmit"));
         waitForClubAction(clubNameCellLocator(updatedClubName), "Club updated");
     }
 
@@ -113,8 +113,8 @@ public class ClubSteps {
         ui.waitForVisible(By.id("clubForm"));
         String name = updatedClubName != null ? updatedClubName : clubName;
         ui.waitForVisible(clubNameCellLocator(name));
-        ui.clickWithFallback(deactivateButtonLocator(name));
-        acceptConfirm();
+        ui.click(deactivateButtonLocator(name));
+        ui.acceptConfirm();
         waitForClubAction(inactiveBadgeLocator(name), "Club deactivated");
         ui.waitForVisible(inactiveBadgeLocator(name));
     }
@@ -125,7 +125,7 @@ public class ClubSteps {
         ui.waitForVisible(By.id("clubForm"));
         String name = updatedClubName != null ? updatedClubName : clubName;
         ui.waitForVisible(inactiveBadgeLocator(name));
-        ui.clickWithFallback(activateButtonLocator(name));
+        ui.click(activateButtonLocator(name));
         waitForClubAction(activeBadgeLocator(name), "Club activated");
         ui.waitForVisible(activeBadgeLocator(name));
     }
@@ -153,7 +153,7 @@ public class ClubSteps {
         ui.type(By.id("clubName"), clubName);
         ui.type(By.id("clubCategory"), "Tech");
         ui.type(By.id("clubDescription"), "Duplicate attempt.");
-        ui.clickWithFallback(By.id("clubFormSubmit"));
+        ui.click(By.id("clubFormSubmit"));
     }
 
     @Then("I see a club already exists error")
@@ -187,12 +187,6 @@ public class ClubSteps {
 
     private By browseCardTitleLocator(String name) {
         return By.xpath("//h6[normalize-space()='" + name + "']");
-    }
-
-    private void acceptConfirm() {
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
-        wait.until(ExpectedConditions.alertIsPresent());
-        driver.switchTo().alert().accept();
     }
 
     private void waitForNotPresent(By locator) {

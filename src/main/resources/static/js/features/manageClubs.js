@@ -1,5 +1,6 @@
 import { apiRequest, safeJson } from '../utils/api.js';
 import { escapeHtml } from '../utils/dom.js';
+import { confirmModal } from '../utils/modal.js';
 
 let cachedClubs = [];
 let cachedEvents = [];
@@ -206,12 +207,12 @@ function renderClubTable() {
                         </td>
                         <td class="text-end">
                             <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary" data-action="edit" data-id="${club.id}">Edit</button>
+                                <button class="btn btn-outline-primary" data-action="edit" data-id="${club.id}"><i class="bi bi-pencil-square me-1"></i>Edit</button>
                                 ${club.active
-                                    ? `<button class="btn btn-outline-danger" data-action="deactivate" data-id="${club.id}">Deactivate</button>`
-                                    : `<button class="btn btn-outline-success" data-action="activate" data-id="${club.id}">Activate</button>`
+                                    ? `<button class="btn btn-outline-danger" data-action="deactivate" data-id="${club.id}"><i class="bi bi-slash-circle me-1"></i>Deactivate</button>`
+                                    : `<button class="btn btn-outline-success" data-action="activate" data-id="${club.id}"><i class="bi bi-check-circle me-1"></i>Activate</button>`
                                 }
-                                <button class="btn btn-outline-danger" data-action="delete" data-id="${club.id}">Delete</button>
+                                <button class="btn btn-outline-danger" data-action="delete" data-id="${club.id}"><i class="bi bi-trash me-1"></i>Delete</button>
                             </div>
                         </td>
                     </tr>
@@ -362,8 +363,8 @@ function renderEventTable() {
                         <td>${event.capacity ?? '-'}</td>
                         <td class="text-end">
                             <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary" data-action="edit-event" data-id="${event.id}">Edit</button>
-                                <button class="btn btn-outline-danger" data-action="delete-event" data-id="${event.id}">Delete</button>
+                                <button class="btn btn-outline-primary" data-action="edit-event" data-id="${event.id}"><i class="bi bi-pencil-square me-1"></i>Edit</button>
+                                <button class="btn btn-outline-danger" data-action="delete-event" data-id="${event.id}"><i class="bi bi-trash me-1"></i>Delete</button>
                             </div>
                         </td>
                     </tr>
@@ -450,7 +451,13 @@ async function handleDeactivate(clubId) {
     const club = cachedClubs.find(item => String(item.id) === String(clubId));
     if (!club?.active) return;
 
-    const confirmed = globalThis.confirm(`Are you sure you want to deactivate "${club.name}"?`);
+    const confirmed = await confirmModal({
+        title: 'Deactivate club',
+        message: `Are you sure you want to deactivate "${club.name}"?`,
+        confirmText: 'Deactivate',
+        confirmVariant: 'danger',
+        iconClass: 'bi bi-slash-circle'
+    });
     if (!confirmed) return;
 
     try {
@@ -499,7 +506,13 @@ async function handleDeleteClub(clubId) {
         return;
     }
 
-    const confirmed = globalThis.confirm(`Are you sure you want to delete "${club.name}"?`);
+    const confirmed = await confirmModal({
+        title: 'Delete club',
+        message: `Are you sure you want to delete "${club.name}"?`,
+        confirmText: 'Delete',
+        confirmVariant: 'danger',
+        iconClass: 'bi bi-trash'
+    });
     if (!confirmed) {
         return;
     }
@@ -592,7 +605,13 @@ async function handleDeleteEvent(eventId) {
         return;
     }
 
-    const confirmed = globalThis.confirm(`Are you sure you want to delete "${event.title || 'this event'}"?`);
+    const confirmed = await confirmModal({
+        title: 'Delete event',
+        message: `Are you sure you want to delete "${event.title || 'this event'}"?`,
+        confirmText: 'Delete',
+        confirmVariant: 'danger',
+        iconClass: 'bi bi-trash'
+    });
     if (!confirmed) {
         return;
     }

@@ -13,7 +13,6 @@ Feature: Event registration
     Given I am logged in as a student
     And I am on the event registration page for an event
     And I'm already registered for the event
-    When I click register
     Then the request is rejected
     And I get a message "You're already registered for this event page"
 
@@ -21,8 +20,8 @@ Feature: Event registration
     Given I am logged in as a student
     And I am on the event registration page for an event
     And the capacity for the event is reached
-    When I click register
-    Then I get a message "Capacity for this event is reached"
+    Then the request is rejected
+    And I get a message "Capacity for this event is reached"
     And I'm not registered for the event
 
   Scenario: Event registration cancellation success
