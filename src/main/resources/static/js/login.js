@@ -4,8 +4,8 @@ const AUTH_TEMPLATE = `
     <div class="auth-shell" data-auth-root>
         <div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh;">
             <div class="card p-4 shadow-sm auth-card" style="max-width: 460px; width: 100%;">
-                <h3 class="fw-bold mb-2">Campus Connect</h3>
-                <p class="text-muted">Sign in or create an account to access your dashboard.</p>
+                <h3 class="fw-bold mb-2 text-center">Campus Connect</h3>
+                <p class="text-muted text-center">Sign in or create an account to access your dashboard.</p>
 
                 <fieldset class="btn-group w-100 auth-toggle mt-2" aria-label="Authentication toggle">
                     <legend class="visually-hidden">Authentication toggle</legend>

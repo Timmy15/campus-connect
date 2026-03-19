@@ -39,6 +39,8 @@ body.auth-mode {
 body.auth-mode .main-content {
     padding: 0;
     min-height: 100vh;
+    flex: 0 0 100%;
+    max-width: 100%;
 }
 
 .auth-shell {
