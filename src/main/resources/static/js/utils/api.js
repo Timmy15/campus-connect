@@ -9,6 +9,9 @@ export async function apiRequest(url, options = null) {
         headers.Authorization = `Bearer ${token}`;
     }
     const fetchOptions = requestOptions ? { ...requestOptions, headers } : { headers };
+    if (fetchOptions.cache === undefined) {
+        fetchOptions.cache = 'no-store';
+    }
     return fetch(url, fetchOptions);
 }
 
