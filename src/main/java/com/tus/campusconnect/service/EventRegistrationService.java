@@ -1,0 +1,135 @@
+package com.tus.campusconnect.service;
+
+import com.tus.campusconnect.exception.BadRequestException;
+import com.tus.campusconnect.exception.ConflictException;
+import com.tus.campusconnect.exception.NotFoundException;
+import com.tus.campusconnect.exception.UnauthorizedException;
+import com.tus.campusconnect.model.Event;
+import com.tus.campusconnect.model.EventRegistration;
+import com.tus.campusconnect.model.RegistrationStatus;
+import com.tus.campusconnect.model.User;
+import com.tus.campusconnect.repository.EventRegistrationRepository;
+import com.tus.campusconnect.repository.EventRepository;
+import com.tus.campusconnect.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class EventRegistrationService {
+
+    private final EventRepository eventRepository;
+    private final EventRegistrationRepository eventRegistrationRepository;
+    private final UserRepository userRepository;
+    private final Clock clock;
+
+    @Transactional
+    public Event registerForEvent(Long eventId, Authentication authentication) {
+        User user = requireUser(authentication);
+        Event event = requireEvent(eventId);
+
+        if (!event.isActive() || event.getClub() == null || !event.getClub().isActive()) {
+            throw new BadRequestException("Event is inactive.");
+        }
+
+        EventRegistration existingRegistration = eventRegistrationRepository
+                .findByEventIdAndUserId(eventId, user.getId())
+                .orElse(null);
+        if (existingRegistration != null && existingRegistration.getStatus() == RegistrationStatus.REGISTERED) {
+            throw new ConflictException("You're already registered for this event page");
+        }
+
+        long registeredCount = eventRegistrationRepository.countByEventIdAndStatus(
+                eventId,
+                RegistrationStatus.REGISTERED
+        );
+        Integer capacity = event.getCapacity();
+        if (capacity != null && registeredCount >= capacity) {
+            throw new ConflictException("Capacity for this event is reached");
+        }
+
+        LocalDateTime now = LocalDateTime.now(clock);
+        if (existingRegistration != null) {
+            existingRegistration.setStatus(RegistrationStatus.REGISTERED);
+            existingRegistration.setRegisteredAt(now);
+            existingRegistration.setCancelledAt(null);
+            eventRegistrationRepository.save(existingRegistration);
+        } else {
+            EventRegistration registration = new EventRegistration();
+            registration.setEvent(event);
+            registration.setUser(user);
+            registration.setStatus(RegistrationStatus.REGISTERED);
+            registration.setRegisteredAt(now);
+            eventRegistrationRepository.save(registration);
+        }
+        return event;
+    }
+
+    @Transactional(readOnly = true)
+    public List<EventRegistration> getRegistrations(Authentication authentication) {
+        User user = requireUser(authentication);
+        return eventRegistrationRepository.findAllByUserIdAndStatusOrderByRegisteredAtDesc(
+                user.getId(),
+                RegistrationStatus.REGISTERED
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public List<EventRegistration> getRegistrationsForEvent(Long eventId) {
+        requireEvent(eventId);
+        return eventRegistrationRepository.findAllByEventIdAndStatusOrderByRegisteredAtDesc(
+                eventId,
+                RegistrationStatus.REGISTERED
+        );
+    }
+
+    @Transactional
+    public EventRegistration unregisterRegistration(Long eventId, Long registrationId) {
+        requireEvent(eventId);
+        EventRegistration registration = eventRegistrationRepository.findByIdAndEventId(registrationId, eventId)
+                .orElseThrow(() -> new NotFoundException("Registration not found."));
+        if (registration.getStatus() == RegistrationStatus.CANCELLED) {
+            throw new ConflictException("Registration already cancelled.");
+        }
+        registration.setStatus(RegistrationStatus.CANCELLED);
+        registration.setCancelledAt(LocalDateTime.now(clock));
+        return registration;
+    }
+
+    @Transactional
+    public EventRegistration cancelRegistration(Long registrationId, Authentication authentication) {
+        User user = requireUser(authentication);
+        EventRegistration registration = eventRegistrationRepository.findByIdAndUserId(registrationId, user.getId())
+                .orElseThrow(() -> new NotFoundException("Registration not found."));
+        if (registration.getStatus() == RegistrationStatus.CANCELLED) {
+            throw new ConflictException("Registration already cancelled.");
+        }
+        registration.setStatus(RegistrationStatus.CANCELLED);
+        registration.setCancelledAt(LocalDateTime.now(clock));
+        return registration;
+    }
+
+    private User requireUser(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            throw new UnauthorizedException("User not found.");
+        }
+
+        String identifier = authentication.getName();
+        User user = userRepository.findByEmailIgnoreCaseOrUsernameIgnoreCase(identifier, identifier).orElse(null);
+        if (user == null) {
+            throw new UnauthorizedException("User not found.");
+        }
+        return user;
+    }
+
+    private Event requireEvent(Long id) {
+        return eventRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Event not found."));
+    }
+}

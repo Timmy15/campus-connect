@@ -11,7 +11,7 @@ Feature: Authentication authorization
 
   Scenario: Student token is forbidden from admin endpoint
     Given path '/api/auth/login'
-    And request { email: 'student@student.tus.com', password: 'Student123' }
+    And request { email: '#(users.student.email)', password: '#(users.student.password)' }
     When method post
     Then status 200
     * def token = response.token
@@ -24,7 +24,7 @@ Feature: Authentication authorization
 
   Scenario: Admin token can access admin endpoint
     Given path '/api/auth/login'
-    And request { email: 'admin@admin.tus.com', password: 'Admin123' }
+    And request { email: '#(users.admin.email)', password: '#(users.admin.password)' }
     When method post
     Then status 200
     * def token = response.token

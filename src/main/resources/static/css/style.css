@@ -32,6 +32,25 @@ body {
         linear-gradient(135deg, var(--bg), var(--bg-wash));
 }
 
+body.auth-mode {
+    padding-top: 0;
+}
+
+body.auth-mode .main-content {
+    padding: 0;
+    min-height: 100vh;
+    flex: 0 0 100%;
+    max-width: 100%;
+}
+
+.auth-shell {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
 .top-navbar {
     background: linear-gradient(130deg, var(--nav-start), var(--nav-end));
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -105,6 +124,27 @@ body {
     background: var(--panel);
 }
 
+.modal-content {
+    background: var(--panel);
+    color: var(--ink);
+    border: 1px solid var(--stroke);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+}
+
+.modal-header,
+.modal-footer {
+    border-color: var(--stroke);
+}
+
+.modal-title i {
+    color: var(--accent);
+}
+
+[data-bs-theme="dark"] .btn-close {
+    filter: invert(1);
+}
+
 .btn-primary {
     background: linear-gradient(135deg, var(--accent), #1d6d5b);
     border: none;
@@ -112,6 +152,38 @@ body {
 
 .btn-primary:hover {
     background: linear-gradient(135deg, #1d6d5b, var(--accent));
+}
+
+#adminParticipationCharts {
+    margin-top: 1.5rem;
+    overflow-x: hidden;
+}
+
+.admin-chart-card {
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.96), rgba(245, 241, 234, 0.9));
+    border: 1px solid var(--stroke);
+    border-radius: 16px;
+    padding: 18px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow: hidden;
+}
+
+.admin-chart-canvas {
+    width: 100%;
+    min-height: 260px;
+}
+
+.admin-chart-canvas canvas {
+    width: 100% !important;
+    max-width: 100%;
+}
+
+[data-bs-theme="dark"] .admin-chart-card {
+    background: linear-gradient(160deg, rgba(24, 33, 59, 0.96), rgba(18, 29, 51, 0.92));
+    border: 1px solid var(--stroke);
 }
 
 #top10FailureTable tbody tr,

@@ -6,7 +6,7 @@ Feature: Authentication login
 
   Scenario: Login success with email
     Given path '/api/auth/login'
-    And request { email: 'student@student.tus.com', password: 'Student123' }
+    And request { email: '#(users.student.email)', password: '#(users.student.password)' }
     When method post
     Then status 200
     And match response.role == 'STUDENT'
@@ -14,7 +14,7 @@ Feature: Authentication login
 
   Scenario: Login success with username
     Given path '/api/auth/login'
-    And request { email: 'student', password: 'Student123' }
+    And request { email: '#(users.student.username)', password: '#(users.student.password)' }
     When method post
     Then status 200
     And match response.role == 'STUDENT'
@@ -22,6 +22,6 @@ Feature: Authentication login
 
   Scenario: Login failure returns unauthorized
     Given path '/api/auth/login'
-    And request { email: 'student@student.tus.com', password: 'WrongPass' }
+    And request { email: '#(users.student.email)', password: '#(users.invalidPassword)' }
     When method post
     Then status 401
